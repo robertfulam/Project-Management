@@ -1,0 +1,108 @@
+/* ===========================
+   CSS Reset / Global Base
+=========================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f4f7f9;
+  color: #1e293b;
+  line-height: 1.6;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+ul, ol {
+  list-style: none;
+}
+
+/* ===========================
+   Typography
+=========================== */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+p {
+  font-size: 1rem;
+  color: #334155;
+}
+
+/* ===========================
+   Buttons
+=========================== */
+button {
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+/* ===========================
+   Forms
+=========================== */
+input, textarea, select {
+  font-family: inherit;
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.2s ease-in-out;
+}
+
+/* ===========================
+   Utility Classes
+=========================== */
+.container {
+  width: 90%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem 0;
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.mt-1 { margin-top: 0.25rem; }
+.mt-2 { margin-top: 0.5rem; }
+.mt-3 { margin-top: 1rem; }
+.mb-1 { margin-bottom: 0.25rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-3 { margin-bottom: 1rem; }
+
+.text-center { text-align: center; }
+.text-bold { font-weight: 600; }
+.text-gray { color: #64748b; }
+
+/* ===========================
+   Links & Hover Effects
+=========================== */
+a:hover {
+  color: #38bdf8;
+}
+
+/* ===========================
+   Responsive Helpers
+=========================== */
+@media (max-width: 768px) {
+  .container {
+    width: 95%;
+    padding: 0.5rem;
+  }
+}

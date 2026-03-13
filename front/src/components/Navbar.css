@@ -1,0 +1,52 @@
+.navbar {
+  background-color: #1e293b;
+  padding: 1rem 2rem;
+  color: white;
+}
+
+.navbar-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  cursor: pointer;
+}
+
+.nav-links {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.auth-section {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.nav-link {
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.nav-link.active {
+  border-bottom: 2px solid #38bdf8;
+}
+
+.signup-btn {
+  background-color: #38bdf8;
+  padding: 6px 12px;
+  border-radius: 4px;
+  color: black;
+}
+
+.logout-btn {
+  background-color: crimson;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+}
