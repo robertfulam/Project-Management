@@ -57,12 +57,33 @@
 
 .btn:hover {
   background-color: #5a67d8;
+
 }
 
 .btn:disabled {
   background-color: #999;
   cursor: not-allowed;
 }
+
+.btn:active {
+  width: 200px;
+  height: 200px;
+  background: gold;
+
+  clip-path: polygon(
+    50% 0%,     /* top point */
+    60% 40%,    
+    100% 50%,   /* right point */
+    60% 60%,    
+    50% 100%,   /* bottom point */
+    40% 60%,    
+    0% 50%,     /* left point */
+    40% 40%
+  );
+
+  animation: starAnim 3s infinite linear;
+}
+
 
 .error {
   color: red;
@@ -84,4 +105,46 @@
 
 .signup-link a:hover {
   text-decoration: underline;
+}
+
+/* 
+
+
+@keyframes starAnim {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+
+  50% {
+    transform: rotate(180deg) scale(1.2);
+  }
+
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+} */
+
+.star {
+  width: 200px;
+  height: 200px;
+  background: gold;
+
+  clip-path: path("M 50 0
+                   A 50 50 0 0 1 100 50
+                   A 50 50 0 0 1 50 100
+                   A 50 50 0 0 1 0 50
+                   A 50 50 0 0 1 50 0
+                   Z");
+
+  animation: spin 4s linear infinite;
+}
+
+/* newest */
+.logout-btn {
+  background-color: crimson;
+  color: white;
+}
+
+.logout-btn:hover {
+  background-color: #b91c1c;
 }

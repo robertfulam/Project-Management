@@ -1,20 +1,37 @@
-const mockTasks = [
+
+
+
+export const mockTasks = [
   {
     id: "1",
-    title: "Build React UI",
-    description: "Create dashboard and task form",
-    status: "In Progress",
+    title: "Upload YouTube Video",
+    description: "Upload the React tutorial",
+    status: "Urgent",
     priority: "High",
-    dueDate: "2026-03-01",
+    category: "YouTube",
+    completed: false,
+    dueDate: "2026-03-20",
   },
   {
     id: "2",
-    title: "Setup Backend",
-    description: "Create Express server",
-    status: "Pending",
+    title: "Write Blog Article",
+    description: "Explain MERN authentication",
+    status: "General",
     priority: "Medium",
-    dueDate: "2026-03-10",
+    category: "Writing",
+    completed: false,
+    dueDate: "2026-03-25",
+  },
+  {
+    id: "3",
+    title: "Thumbnail Design",
+    description: "Create thumbnail for next video",
+    status: "Optional",
+    priority: "Low",
+    category: "YouTube",
+    completed: true,
+    dueDate: "2026-03-18",
   },
 ];
 
-export default mockTasks;
+// export default mockTasks;
