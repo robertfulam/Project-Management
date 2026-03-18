@@ -75,7 +75,11 @@ function Dashboard() {
                       <p>Self scrolling text display</p>
 
                       <form onSubmit={handleAI}>
-                        <button className="editBtn">Upload</button>
+                        {/* <label><span>+</span></label> */}
+                        <select>
+                          <option>Summarize</option>
+                        </select>
+                        <button className="editBtn">+</button>
                         <input type="text" placeholder="Ask AI for help..." />
                         <button type="submit">Send</button> 
 

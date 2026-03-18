@@ -1,3 +1,10 @@
+@font-face {
+  font-family: 'McLawsuit';
+  src: url('./assets/fonts/McLawsuit.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 
 .navbar {
   align-content: center;
@@ -25,9 +32,7 @@
   align-items: center;
 }
 
-.logo {
-  cursor: pointer;
-}
+
 
 .nav-links {
   display: flex;
@@ -45,6 +50,7 @@
   text-decoration: none;
   font-weight: 500;
   transition: all 0.2s ease-in-out;
+  /* font-family: 'McLawsuit', sans-serif; */
 }
 
 .nav-link.active {
@@ -54,7 +60,6 @@
 
 
 
-::highlight
 
 .nav-links {
   display: flex;
@@ -89,6 +94,7 @@
   border-radius: 4px;
   color: white;
   cursor: pointer;
+  font-family: 'McLawsuit', sans-serif;
 }
 
 img {
@@ -101,7 +107,15 @@ img {
   font-weight: 700;
   font-size: 1.5rem;
   cursor: pointer;
+ 
 }
+
+/* #pm {
+  font-weight: 700;
+  font-size: 1.5rem;
+  cursor: pointer;
+  font-family: 'McLawsuit', sans-serif;
+} */
 
 .badge {
   color: var(--badge);

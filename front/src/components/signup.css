@@ -1,4 +1,5 @@
 .signup-container {
+  margin-top: 100px;
   height: 100vh;
   display: flex;
   justify-content: center;
@@ -8,6 +9,10 @@
 
 .signup-form {
   width: 100%;
+  height: fit-content;
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
   max-width: 400px;
   background: white;
   padding: 30px;

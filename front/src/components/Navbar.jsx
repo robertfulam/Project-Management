@@ -8,6 +8,7 @@ import Complete from "./Complete";
 import { mockTasks } from "../data/mockTasks";
 import { useState } from "react";
 import AdminToggle from "./AdminToggle";
+import ProfileDropdown from "./ProfileDropdown";
 
 function Navbar() {
    const [tasks, setTasks] = useState(mockTasks);
@@ -35,7 +36,7 @@ function Navbar() {
         <h2 className="logo" onClick={() => navigate("/")}>
          {/* Navigation Links */}
         <div className="logo">
-          <NavLink to="/" className="nav-link">
+          <NavLink to="/" className="nav-link" id="pm">
             PM
           </NavLink>
         </div>
@@ -79,14 +80,10 @@ function Navbar() {
             <>
 
             <ThemeToggle />
-            <button>Profile</button>
-            <AdminToggle isAdminView={false} />
-              {/* <NavLink to="/login" className="nav-link">
-                Login
-              </NavLink>
-              <NavLink to="/signup" className="nav-link signup-btn">
-                Sign Up
-              </NavLink> */}
+          
+            {/* <AdminToggle isAdminView={false} /> */}
+            <ProfileDropdown />
+            
               
             </>
           )}
