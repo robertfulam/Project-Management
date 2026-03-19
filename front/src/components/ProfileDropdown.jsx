@@ -33,18 +33,19 @@ const ProfileDropdown = ({ user, onLogout }) => {
 
   return (
     <div className="profile-dropdown-container">
+      {/* Avatar / trigger */}
       <div className="profile-trigger" onClick={toggleDropdown}>
         <img
           src={
             profileImage ||
             (user?.email
               ? `https://www.gravatar.com/avatar/${user.email}?d=identicon`
-              : "https://via.placeholder.com/36")
+              : "https://cdn-icons-png.flaticon.com/512/1077/1077114.png")
           }
           alt="Profile"
           className="profile-avatar"
         />
-        {/* <span className="profile-name">{user?.name || "Guest"}</span> */}
+        <span className="profile-name">{user?.name || "Guest"}</span>
       </div>
 
       {open && (
@@ -54,7 +55,7 @@ const ProfileDropdown = ({ user, onLogout }) => {
               {/* Profile Section */}
               <div className="dropdown-section hover-section">
                 <div className="dropdown-title">Profile</div>
-                <div className="floating-submenu">
+                <div className="floating-submenu left-side">
                   <div>Email: {user.email}</div>
                   <div>Account: {user.accountName}</div>
                   <div>Role: {user.role}</div>
@@ -65,7 +66,7 @@ const ProfileDropdown = ({ user, onLogout }) => {
               {/* Settings Section */}
               <div className="dropdown-section hover-section">
                 <div className="dropdown-title">Settings</div>
-                <div className="floating-submenu">
+                <div className="floating-submenu left-side">
                   <div>Role: {user.role}</div>
                   {user.isAdmin && <button className="switch-role-btn">Switch Role</button>}
                   <div className="bg-upload">
@@ -98,27 +99,17 @@ const ProfileDropdown = ({ user, onLogout }) => {
               {/* Guest User */}
               <div className="dropdown-section hover-section" onClick={() => redirectAuth("/signup")}>
                 <div className="dropdown-title">Profile</div>
-                <div className="floating-submenu">Email: guest@example</div>
-                <div className="floating-submenu">Name: Guest</div>
-                <button className="switch-role-btn" onClick={() => redirectAuth("/login")}>
-                    Switch Roles
-                  </button>
+                <div className="floating-submenu left-side">Profile</div>
               </div>
 
               <div className="dropdown-section hover-section" onClick={() => redirectAuth("/signup")}>
                 <div className="dropdown-title">Settings</div>
-                <div className="floating-submenu">
-                  
+                <div className="floating-submenu left-side">
+                  Settings
                   <button className="ai-bg-btn" onClick={() => redirectAuth("/login")}>
                     Generate AI Background
                   </button>
-                  <button className="upload-bg-img" onClick={() => redirectAuth("/login")}>
-                    Upload Image
-                  </button>
-                  
-                  {bgImage && (
-                    <img src={bgImage} alt="Background" className="bg-preview" />
-                  )}
+                  {bgImage && <img src={bgImage} alt="Background" className="bg-preview" />}
                 </div>
               </div>
 

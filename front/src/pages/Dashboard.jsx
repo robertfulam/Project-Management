@@ -1,109 +1,185 @@
 import { useState } from "react";
-import TaskCard from "../components/TaskCard";
-import { Link } from "react-router-dom";
-import '../components/Dashboard.css'
+import "../components/Dashboard.css";
 
-import { mockTasks } from "../data/mockTasks";
+const priorities = ["High", "Medium", "Low"];
+const urgencyLevels = ["Very Urgent", "Urgent", "Not Urgent"];
 
-
-
-function Dashboard() {
-  const [tasks, setTasks] = useState(mockTasks);
-
-  const handleAI = (e) => {
-  e.preventDefault();
-  alert("AI feature coming soon: summarize, monetize, and assist tasks.");
+const data = {
+  High: {
+    "Very Urgent": {
+      YouTube: ["Upload", "Fix thumbnails"],
+      Work: ["Finish report"]
+    },
+    Urgent: {
+      School: ["Submit assignment"]
+    },
+    "Not Urgent": {
+      Personal: ["Watch course"]
+    }
+  },
+  Medium: {
+    Urgent: {
+      School: ["Read notes"]
+    }
+  },
+  Low: {
+    "Not Urgent": {
+      Personal: ["Gym", "Relax"]
+    }
+  }
 };
 
-  const completed = tasks.filter((t) => t.completed).length;
+function Dashboard() {
+  const [priority, setPriority] = useState(null);
+  const [urgency, setUrgency] = useState(null);
+  const [category, setCategory] = useState(null);
+  const [task, setTask] = useState(null);
 
-  const completionRate = tasks.length
-  ? Math.round((completed / tasks.length) * 100)
-  : 0;
+  const [aiInput, setAiInput] = useState("");
+  const [showActions, setShowActions] = useState(false);
 
-  const handleDelete = (id) => {
-    setTasks(tasks.filter((task) => task.id !== id));
+  // NEW STATE: persistent last-selected task path
+  const [taskPath, setTaskPath] = useState("AI Assistant");
 
+  // Task selection: set input + close menus + store path
+  const handleTaskClick = (t) => {
+    setTask(t);
+    setAiInput(`I'm working on this "${t}" today`);
+
+    // Save persistent path
+    setTaskPath(`${priority} - ${urgency} - ${category} - ${t}`);
+
+    // Close floating menus
+    setPriority(null);
+    setUrgency(null);
+    setCategory(null);
+  };
+
+  // + menu item clicked → close dropdown
+  const handleActionClick = (action) => {
+    console.log(action);
+    setShowActions(false);
   };
 
   return (
-  
-      <div className="dashboard-container">
-          {/* <div className="dashboard-header">
-            <div className="summary-content">Completion: {completed} </div>
-            <div className="summary-content">Pending: <span>{tasks.filter((task) => !task.completed).length}</span></div>
-            <div className="summary-content">Categories: <span>{new Set(tasks.map((task) => task.category)).size}</span></div>
-            <div className="summary-content">
-              Progress:{completionRate}%
-              Create a circlular progress bar here to show completion percentage, which is based on all tasks, against the total number of tasks completed. 
-            </div>
-          </div> */}
+    <div className="dashboard">
 
-        {/* LEFT-SIDEABR */}
-          <div className="dashboard-body">
-            <div className="left-sidebar">
-              <h1>Priorities</h1>
-             <Link className="link">High Priority</Link> 
-              <Link className="link">Medium Priority</Link>
-              <Link className="link">Low Priority</Link>
-            </div>
+      {/* LEFT SIDE */}
+      <div className="left-column">
+        <h2>Priorities</h2>
 
+        {priorities.map((p) => (
+          <div className="priority-item" key={p}>
+            <button
+              onClick={() => {
+                setPriority(p);
+                setUrgency(null);
+                setCategory(null);
+                setTask(null);
+              }}
+            >
+              {p}
+            </button>
 
-          {/* RIGHT-SIDEBAR */}
-            <div className="right-sidebar">
-           
-              <div className="right-sidebar-content">
-                
-                <div className="TaskSelection">
-                  <label>Choose task from {tasks.length}: Urgent</label>
-                  <select>
-                    <option value="work"></option>
-                  </select>
+            {/* FLOATING MENU */}
+            {priority === p && (
+              <div className="floating-wrapper">
+
+                {/* URGENCY */}
+                <div className="float-column">
+                  <h4>Urgency</h4>
+                  {urgencyLevels.map((u) => (
+                    <button
+                      key={u}
+                      onClick={() => {
+                        setUrgency(u);
+                        setCategory(null);
+                        setTask(null);
+                      }}
+                    >
+                      {u}
+                    </button>
+                  ))}
                 </div>
 
-
-                <div className="TaskActions">
-                   <div className="right-sidebar-header"><h4>Urgent..Youtube...Upload</h4></div>
-                    <div className="TaskButtons">
-                      
-                      <button className="deleteBtn">Summarize Task</button>
-                      <button className="deleteBtn">Monetize Task</button>
-                    </div>
-
-                    <div className="TaskText">
-                    
-                      <p>Self scrolling text display</p>
-
-                      <form onSubmit={handleAI}>
-                        {/* <label><span>+</span></label> */}
-                        <select>
-                          <option>Summarize</option>
-                        </select>
-                        <button className="editBtn">+</button>
-                        <input type="text" placeholder="Ask AI for help..." />
-                        <button type="submit">Send</button> 
-
-                        {/* Complete the AI functionalities for me */}
-                      </form>
-                      
+                {/* CATEGORY */}
+                {urgency && data[p]?.[urgency] && (
+                  <div className="float-column">
+                    <h4>Category</h4>
+                    {Object.keys(data[p][urgency]).map((c) => (
+                      <button
+                        key={c}
+                        onClick={() => {
+                          setCategory(c);
+                          setTask(null);
+                        }}
+                      >
+                        {c}
+                      </button>
+                    ))}
                   </div>
-                
-                </div>
+                )}
+
+                {/* TASK */}
+                {category && (
+                  <div className="float-column">
+                    <h4>Tasks</h4>
+                    {data[p][urgency][category].map((t) => (
+                      <button key={t} onClick={() => handleTaskClick(t)}>
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
               </div>
+            )}
           </div>
-         </div> 
+        ))}
+      </div>
 
+      {/* RIGHT SIDE */}
+      <div className="right-column">
 
-{/* {tasks.length === 0 ? (
-        <p>No tasks available</p>
-      ) : (
-        tasks.map((task) => (
-          <TaskCard key={task.id} task={task} onDelete={handleDelete} />
-        ))
-      )} */}
+        {/* ✅ Persistent AI Header */}
+        <div className="ai-header">{taskPath}</div>
 
-      </div>  
-  
+        <div className="chat-box">
+          <p>{aiInput || "Select a task..."}</p>
+        </div>
+
+        <div className="input-area">
+
+          {/* PLUS BUTTON */}
+          <div className="plus-container">
+            <button onClick={() => setShowActions(!showActions)}>+</button>
+
+            {showActions && (
+              <div className="actions-dropdown">
+                <button onClick={() => handleActionClick("Summarize Task")}>
+                  Summarize Task
+                </button>
+                <button onClick={() => handleActionClick("Monetize Task")}>
+                  Monetize Task
+                </button>
+                <button onClick={() => handleActionClick("Upload")}>
+                  Upload
+                </button>
+              </div>
+            )}
+          </div>
+
+          <input
+            value={aiInput}
+            onChange={(e) => setAiInput(e.target.value)}
+            placeholder="Ask AI..."
+          />
+
+          <button className="send-btn">↑</button>
+
+        </div>
+      </div>
+    </div>
   );
 }
 
