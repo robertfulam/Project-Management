@@ -19,24 +19,63 @@ const submissionRoutes = require('./routes/submissionRoutes');
 // Import database connection
 const connectDB = require('./config/db');
 
-// Initialize express app
 const app = express();
 
-// Connect to MongoDB
-connectDB();
+// ============================================
+// DATABASE CONNECTION
+// ============================================
+// Connect to MongoDB with error handling
+connectDB().catch(err => {
+  console.error('❌ Database connection failed:', err.message);
+  console.log('⚠️  Server will continue without database connection');
+  console.log('   Some endpoints may not work until database is connected\n');
+});
 
-// Middleware
-app.use(cors({
+// ============================================
+// MIDDLEWARE
+// ============================================
+// CORS configuration
+const corsOptions = {
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true,
-}));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 200
+};
 
-// Serve static files
+app.use(cors(corsOptions));
+
+// Body parsers with increased limit for file uploads
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Static files for uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Routes
+// Request logging middleware (development only)
+if (process.env.NODE_ENV === 'development') {
+  app.use((req, res, next) => {
+    console.log(`📝 ${req.method} ${req.url}`);
+    next();
+  });
+}
+
+// Response time header
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`⏱️  ${req.method} ${req.url} - ${res.statusCode} - ${duration}ms`);
+    }
+  });
+  next();
+});
+
+// ============================================
+// ROUTES
+// ============================================
+// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/tasks', taskRoutes);
@@ -45,95 +84,261 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/submissions', submissionRoutes);
 
-// Health check endpoint
+// ============================================
+// HEALTH CHECK ENDPOINTS
+// ============================================
 app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'OK', 
-    message: 'Server is running',
-    timestamp: new Date().toISOString()
+  const dbState = {
+    0: 'disconnected',
+    1: 'connected',
+    2: 'connecting',
+    3: 'disconnecting'
+  };
+  
+  const readyState = mongoose.connection.readyState;
+  
+  res.status(200).json({
+    status: 'OK',
+    server: 'running',
+    uptime: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString(),
+    database: {
+      status: dbState[readyState] || 'unknown',
+      readyState: readyState,
+      name: mongoose.connection.name || 'not connected',
+      host: mongoose.connection.host || 'not connected'
+    },
+    environment: process.env.NODE_ENV || 'development',
+    version: '1.0.0'
   });
 });
 
-// Home route
+// ============================================
+// HOME ROUTE
+// ============================================
 app.get('/', (req, res) => {
+  const isDbConnected = mongoose.connection.readyState === 1;
+  
   res.json({
     name: 'Task Manager API',
     version: '1.0.0',
-    status: 'Active',
+    status: 'active',
+    database: isDbConnected ? 'connected ✅' : 'disconnected ⚠️',
+    serverTime: new Date().toISOString(),
     endpoints: {
-      auth: '/api/auth',
-      categories: '/api/categories',
-      tasks: '/api/tasks',
-      dashboard: '/api/dashboard',
-      ai: '/api/ai',
-      admin: '/api/admin',
-      submissions: '/api/submissions'
-    }
+      auth: {
+        register: 'POST /api/auth/register',
+        login: 'POST /api/auth/login',
+        me: 'GET /api/auth/me'
+      },
+      categories: {
+        list: 'GET /api/categories',
+        create: 'POST /api/categories',
+        update: 'PUT /api/categories/:id',
+        delete: 'DELETE /api/categories/:id'
+      },
+      tasks: {
+        list: 'GET /api/tasks/all',
+        myTasks: 'GET /api/tasks/user',
+        create: 'POST /api/tasks',
+        update: 'PUT /api/tasks/:id',
+        delete: 'DELETE /api/tasks/:id',
+        complete: 'PUT /api/tasks/:id/complete'
+      },
+      dashboard: {
+        stats: 'GET /api/dashboard/stats',
+        myTodo: 'GET /api/dashboard/mytodo',
+        complete: 'GET /api/dashboard/complete',
+        pending: 'GET /api/dashboard/pending',
+        progress: 'GET /api/dashboard/progress'
+      },
+      ai: {
+        chat: 'POST /api/ai/chat',
+        history: 'GET /api/ai/chats',
+        assess: 'POST /api/ai/assess/:submissionId'
+      },
+      admin: {
+        assignTask: 'POST /api/admin/assign-task',
+        submissions: 'GET /api/admin/submissions',
+        review: 'PUT /api/admin/submissions/:id/review',
+        users: 'GET /api/admin/users',
+        stats: 'GET /api/admin/stats'
+      },
+      submissions: {
+        create: 'POST /api/submissions',
+        list: 'GET /api/submissions/user',
+        upload: 'POST /api/submissions/upload',
+        update: 'PUT /api/submissions/:id'
+      }
+    },
+    documentation: 'https://github.com/yourusername/task-manager-api',
+    support: 'support@taskmanager.com'
   });
 });
 
-// 404 handler
+// ============================================
+// ERROR HANDLING
+// ============================================
+// 404 Handler for undefined routes
 app.use((req, res) => {
-  res.status(404).json({ 
+  res.status(404).json({
+    success: false,
     message: 'Route not found',
-    requestedUrl: req.originalUrl
+    requestedUrl: req.originalUrl,
+    method: req.method,
+    availableEndpoints: '/ for API information'
   });
 });
 
-// Error handling middleware
+// Global error handler
 app.use((err, req, res, next) => {
-  console.error('Error:', err.stack);
+  // Log error with details
+  console.error('❌ Error:', {
+    message: err.message,
+    stack: err.stack,
+    url: req.url,
+    method: req.method,
+    body: req.body,
+    user: req.user?._id,
+    timestamp: new Date().toISOString()
+  });
   
   // Mongoose validation error
   if (err.name === 'ValidationError') {
     const messages = Object.values(err.errors).map(val => val.message);
-    return res.status(400).json({ 
-      message: 'Validation Error', 
-      errors: messages 
+    return res.status(400).json({
+      success: false,
+      message: 'Validation Error',
+      errors: messages
     });
   }
   
   // Mongoose duplicate key error
   if (err.code === 11000) {
     const field = Object.keys(err.keyPattern)[0];
-    return res.status(400).json({ 
-      message: `Duplicate value for ${field}. Please use another value.` 
+    return res.status(400).json({
+      success: false,
+      message: `Duplicate value for ${field}. Please use another value.`,
+      field: field
+    });
+  }
+  
+  // Mongoose cast error (invalid ObjectId)
+  if (err.name === 'CastError') {
+    return res.status(400).json({
+      success: false,
+      message: `Invalid ${err.path}: ${err.value}`,
+      field: err.path
     });
   }
   
   // JWT errors
   if (err.name === 'JsonWebTokenError') {
-    return res.status(401).json({ message: 'Invalid token' });
+    return res.status(401).json({
+      success: false,
+      message: 'Invalid token. Please login again.'
+    });
   }
   
   if (err.name === 'TokenExpiredError') {
-    return res.status(401).json({ message: 'Token expired' });
+    return res.status(401).json({
+      success: false,
+      message: 'Token expired. Please login again.'
+    });
   }
   
-  res.status(err.status || 500).json({ 
+  // Multer errors (file upload)
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(400).json({
+      success: false,
+      message: 'File too large. Maximum size is 50MB.'
+    });
+  }
+  
+  // Default error response
+  const statusCode = err.status || 500;
+  const response = {
+    success: false,
     message: err.message || 'Internal Server Error',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
-  });
+    statusCode: statusCode
+  };
+  
+  // Add stack trace only in development
+  if (process.env.NODE_ENV === 'development') {
+    response.stack = err.stack;
+  }
+  
+  res.status(statusCode).json(response);
 });
 
-// Start server
-const PORT = process.env.PORT || 7000;
+// ============================================
+// START SERVER
+// ============================================
+const PORT = process.env.PORT || 5000;
+
 const server = app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔗 API URL: http://localhost:${PORT}`);
+  console.log('\n' + '='.repeat(50));
+  console.log('🚀 TASK MANAGER API SERVER');
+  console.log('='.repeat(50));
+  console.log(`📍 Server URL: http://localhost:${PORT}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`💾 Database Status: ${mongoose.connection.readyState === 1 ? 'Connected ✅' : 'Disconnected ⚠️'}`);
+  console.log(`📅 Started: ${new Date().toLocaleString()}`);
+  console.log('='.repeat(50));
+  console.log('\n✨ Server is ready to accept requests!\n');
 });
+
+// ============================================
+// GRACEFUL SHUTDOWN
+// ============================================
+const shutdown = async (signal) => {
+  console.log(`\n⚠️  ${signal} received. Shutting down gracefully...`);
+  
+  // Close server first
+  server.close(async () => {
+    console.log('📡 HTTP server closed');
+    
+    // Close database connection
+    try {
+      if (mongoose.connection.readyState === 1) {
+        await mongoose.connection.close(false);
+        console.log('💾 MongoDB connection closed');
+      }
+      console.log('✅ Graceful shutdown completed');
+      process.exit(0);
+    } catch (error) {
+      console.error('❌ Error during shutdown:', error.message);
+      process.exit(1);
+    }
+  });
+  
+  // Force close after timeout
+  setTimeout(() => {
+    console.error('⚠️  Could not close connections in time, forcefully shutting down');
+    process.exit(1);
+  }, 10000);
+};
+
+// Handle process termination signals
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
 
 // Handle unhandled promise rejections
-process.on('unhandledRejection', (err) => {
-  console.error('Unhandled Rejection:', err);
-  server.close(() => process.exit(1));
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise);
+  console.error('Reason:', reason);
+  // Don't crash in development, but log it
+  if (process.env.NODE_ENV === 'production') {
+    shutdown('UNHANDLED_REJECTION');
+  }
 });
 
 // Handle uncaught exceptions
-process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception:', err);
-  server.close(() => process.exit(1));
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  if (process.env.NODE_ENV === 'production') {
+    shutdown('UNCAUGHT_EXCEPTION');
+  }
 });
 
 module.exports = app;
