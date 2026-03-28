@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { authService } from "../services/authService";
 import "../components/Login.css";
 
 const Login = () => {
@@ -6,13 +8,12 @@ const Login = () => {
     email: "",
     password: "",
   });
-
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -21,21 +22,21 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     setError("");
     setLoading(true);
 
     try {
-      // 🔥 Later connect to backend with axios
-      console.log("Login Data:", formData);
-
-      // Simulate API delay
-      setTimeout(() => {
-        setLoading(false);
-      }, 1000);
-
+      const user = await authService.login(formData.email, formData.password);
+      
+      // Redirect based on role
+      if (user.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/');
+      }
     } catch (err) {
-      setError("Invalid email or password");
+      setError(err.message || "Invalid email or password");
+    } finally {
       setLoading(false);
     }
   };
@@ -76,7 +77,7 @@ const Login = () => {
         </button>
 
         <p className="signup-link">
-          Don’t have an account? <a href="/Signup">Sign up</a>
+          Don't have an account? <a href="/signup">Sign up</a>
         </p>
       </form>
     </div>

@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { authService } from "../services/authService";
 import "../components/signup.css";
 
 const Signup = () => {
@@ -8,19 +10,19 @@ const Signup = () => {
     password: "",
     confirmPassword: "",
   });
-
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (formData.password !== formData.confirmPassword) {
@@ -28,11 +30,28 @@ const Signup = () => {
       return;
     }
 
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+
     setError("");
+    setLoading(true);
 
-    console.log("Form Submitted:", formData);
-
-    // 🔥 Later we connect this to backend with axios
+    try {
+      const user = await authService.register(formData);
+      
+      // Redirect based on role
+      if (user.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/');
+      }
+    } catch (err) {
+      setError(err.message || "Registration failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -73,7 +92,7 @@ const Signup = () => {
             name="password"
             value={formData.password}
             onChange={handleChange}
-            placeholder="Enter your password"
+            placeholder="Enter your password (min 6 characters)"
             required
           />
         </div>
@@ -90,14 +109,14 @@ const Signup = () => {
           />
         </div>
 
-        <button type="submit" className="btn">
-          Sign Up
+        <button type="submit" className="btn" disabled={loading}>
+          {loading ? "Creating account..." : "Sign Up"}
         </button>
-         <p className="signup-link">
-          Already have an account? <a href="/Login">Log in</a>
+        
+        <p className="signup-link">
+          Already have an account? <a href="/login">Log in</a>
         </p>
       </form>
-      
     </div>
   );
 };
