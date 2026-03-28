@@ -3,6 +3,9 @@
   max-width: 1400px;
   margin: 100px auto 40px;
   padding: 20px;
+  position: relative;
+  overflow-x: visible;
+  overflow-y: visible;
 }
 
 /* Header */
@@ -87,16 +90,17 @@
   grid-template-columns: 300px 1fr;
   gap: 24px;
   height: calc(100vh - 280px);
-  overflow: hidden;
+  overflow: visible;
   position: relative;
 }
 
-/* LEFT COLUMN - Original Design */
+/* LEFT COLUMN - Allow overflow */
 .left-column {
   background: var(--card, white);
   border-radius: 12px;
   padding: 20px;
   overflow-y: auto;
+  overflow-x: visible;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   position: relative;
   z-index: 1;
@@ -113,10 +117,11 @@
   z-index: 2;
 }
 
-/* Priority Items - Original Floating Menu Design */
+/* Priority Items - Allow overflow */
 .priority-item {
   position: relative;
   margin-bottom: 10px;
+  overflow: visible;
 }
 
 .priority-main-btn {
@@ -129,6 +134,8 @@
   font-weight: 500;
   text-align: left;
   transition: all 0.2s;
+  position: relative;
+  z-index: 1;
 }
 
 .priority-main-btn:hover {
@@ -142,12 +149,11 @@
   border-color: transparent;
 }
 
-/* Floating Wrapper - Highest Z-Index */
+/* Floating Dropdown - Positioned to display outside container */
 .floating-wrapper {
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  top: auto;
+  left: auto;
   display: flex;
   gap: 2px;
   z-index: 9999;
@@ -160,6 +166,14 @@
   pointer-events: auto;
 }
 
+/* Calculate position dynamically via JavaScript - fallback styles */
+.floating-wrapper {
+  /* These will be overridden by inline styles from JS */
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
 .float-column {
   width: 260px;
   max-height: 400px;
@@ -169,24 +183,12 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
   animation: fadeInUp 0.3s ease;
+  backdrop-filter: blur(0px);
 }
 
-/* Independent Scrolling for Each Column */
-.float-column:nth-child(1) {
-  animation-delay: 0s;
-}
-
-.float-column:nth-child(2) {
-  animation-delay: 0.05s;
-}
-
-.float-column:nth-child(3) {
-  animation-delay: 0.1s;
-}
-
-/* Custom Scrollbar for Each Column */
+/* Custom Scrollbar */
 .float-column::-webkit-scrollbar {
   width: 8px;
 }
@@ -252,11 +254,11 @@
 @keyframes slideIn {
   from {
     opacity: 0;
-    transform: translate(-50%, -45%);
+    transform: translateX(10px);
   }
   to {
     opacity: 1;
-    transform: translate(-50%, -50%);
+    transform: translateX(0);
   }
 }
 
@@ -284,17 +286,63 @@
   z-index: 1;
 }
 
-/* AI Header */
+/* AI Header with Selected Task */
 .ai-header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 15px;
   border-radius: 8px;
   margin-bottom: 20px;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.selected-task-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 16px;
+  color: white;
+  gap: 10px;
+}
+
+.task-icon {
+  font-size: 1.125rem;
+}
+
+.task-name {
+  flex: 1;
   font-weight: 500;
   font-size: 0.875rem;
-  text-align: center;
   word-break: break-word;
+}
+
+.clear-task {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.clear-task:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.no-task-selected {
+  padding: 12px 16px;
+  color: white;
+  font-size: 0.875rem;
+  text-align: center;
 }
 
 /* Chat Box */
@@ -327,6 +375,14 @@
   padding: 40px;
   color: var(--text-light, #666);
   font-size: 0.875rem;
+}
+
+.task-quote {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--primary, #667eea);
+  margin-bottom: 10px;
+  font-style: italic;
 }
 
 .typing-indicator {
@@ -381,7 +437,7 @@
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   z-index: 9998;
-  min-width: 220px;
+  min-width: 200px;
   animation: fadeIn 0.2s ease;
   overflow: hidden;
 }
@@ -393,7 +449,7 @@
   border: none;
   text-align: left;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s;
   font-size: 0.875rem;
   border-bottom: 1px solid var(--border, #f0f0f0);
 }
@@ -466,15 +522,15 @@
   color: var(--text-light, #666);
 }
 
-/* Backdrop for Floating Menus */
-.menu-backdrop {
+/* Backdrop when dropdown is open */
+.dropdown-backdrop {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.3);
-  z-index: 9998;
+  background: rgba(0, 0, 0, 0.2);
+  z-index: 9997;
   animation: fadeIn 0.2s ease;
 }
 
@@ -488,33 +544,33 @@
     width: 240px;
     max-height: 350px;
   }
-  
-  .floating-wrapper {
-    gap: 4px;
-  }
 }
 
 @media (max-width: 768px) {
   .dashboard-container {
     margin-top: 80px;
     padding: 15px;
+    overflow-x: visible;
   }
   
   .dashboard-layout {
     grid-template-columns: 1fr;
     height: auto;
     gap: 20px;
+    overflow: visible;
   }
   
   .left-column {
     max-height: 400px;
+    overflow-y: auto;
+    overflow-x: visible;
   }
   
   .floating-wrapper {
     position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
     flex-direction: column;
     z-index: 9999;
     width: 90%;
