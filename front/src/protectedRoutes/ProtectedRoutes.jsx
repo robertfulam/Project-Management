@@ -1,14 +1,4 @@
-// import React from 'react'
 
-// const ProtectedRoutes = () => {
-//   return (
-//     <div>
-//       ProtectedRoutes
-//     </div>
-//   )
-// }
-
-// export default ProtectedRoutes
 
 
 import { Navigate } from "react-router-dom";
