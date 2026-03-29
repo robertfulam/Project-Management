@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom'; // ✅ added Link import (important)
 import { authService } from '../services/authService';
 import toast from 'react-hot-toast';
 import './ResetPassword.css';
@@ -32,7 +32,7 @@ const ResetPassword = () => {
       navigate('/login');
     } catch (error) {
       console.error('Reset password error:', error);
-      toast.error(error.message || 'Failed to reset password');
+      toast.error(error || 'Failed to reset password'); // ✅ FIXED
     } finally {
       setLoading(false);
     }

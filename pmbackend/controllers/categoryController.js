@@ -17,7 +17,7 @@ const getCategories = async (req, res) => {
   }
 };
 
-// Create category
+// Create category (any user)
 const createCategory = async (req, res) => {
   try {
     const { name, description, color, icon } = req.body;
@@ -35,7 +35,7 @@ const createCategory = async (req, res) => {
     const category = await Category.create({
       name: name.trim(),
       description: description || '',
-      createdBy: req.user._id,
+      createdBy: req.user._id, // assign to the logged-in user
       isDefault: false,
       color: color || '#6366f1',
       icon: icon || '📁'
@@ -47,7 +47,7 @@ const createCategory = async (req, res) => {
   }
 };
 
-// Update category (only owner or admin)
+// Update category (owner or admin)
 const updateCategory = async (req, res) => {
   try {
     const category = await Category.findById(req.params.id);
@@ -74,7 +74,7 @@ const updateCategory = async (req, res) => {
   }
 };
 
-// Delete category (only owner or admin)
+// Delete category (owner or admin)
 const deleteCategory = async (req, res) => {
   try {
     const category = await Category.findById(req.params.id);

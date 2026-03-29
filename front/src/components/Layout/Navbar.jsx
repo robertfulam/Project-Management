@@ -34,7 +34,7 @@ const Navbar = () => {
     <nav className="navbar">
       <div className="navbar-container">
         <div className="logo" onClick={handleLogoClick}>
-          TaskManager
+          PM
         </div>
 
         {isAuthenticated && (

@@ -1,6 +1,5 @@
 const express = require('express');
 const { protect } = require('../middleware/auth');
-const { adminOnly } = require('../middleware/admin');
 const {
   createCategory,
   getCategories,
@@ -13,9 +12,13 @@ const router = express.Router();
 // Get all categories (any authenticated user)
 router.get('/', protect, getCategories);
 
-// Category management (admin only)
-router.post('/', protect, adminOnly, createCategory);
-router.put('/:id', protect, adminOnly, updateCategory);
-router.delete('/:id', protect, adminOnly, deleteCategory);
+// Create a new category (any authenticated user)
+router.post('/', protect, createCategory);
+
+// Update category (owner or admin)
+router.put('/:id', protect, updateCategory);
+
+// Delete category (owner or admin)
+router.delete('/:id', protect, deleteCategory);
 
 module.exports = router;

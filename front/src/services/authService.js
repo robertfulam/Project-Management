@@ -1,4 +1,4 @@
-import api from './../services/api';
+import api from './api';
 
 export const authService = {
   // Register new user
@@ -52,7 +52,7 @@ export const authService = {
       return response.data;
     } catch (error) {
       console.error('Forgot password API error:', error);
-      throw error.response?.data || { message: 'Failed to send reset link' };
+      throw error.response?.data?.message || 'Failed to send reset link'; // ✅ FIXED
     }
   },
 

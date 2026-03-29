@@ -33,26 +33,23 @@ const userSchema = new mongoose.Schema({
   timestamps: true,
 });
 
-// Hash password before saving - FIXED
-userSchema.pre('save', function(next) {
-  if (!this.isModified('password')) {
-    return next();
-  }
-  
-  bcrypt.hash(this.password, 10, (err, hash) => {
-    if (err) return next(err);
-    this.password = hash;
-    next();
-  });
+
+// ✅ FIXED: Async pre-save hook (NO next, NO callbacks)
+userSchema.pre('save', async function () {
+  if (!this.isModified('password') || !this.password) return;
+
+  this.password = await bcrypt.hash(this.password, 10);
 });
 
+
 // Compare password method
-userSchema.methods.comparePassword = async function(candidatePassword) {
+userSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-// Remove password from JSON
-userSchema.methods.toJSON = function() {
+
+// Remove sensitive fields from JSON
+userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.password;
   delete obj.__v;
