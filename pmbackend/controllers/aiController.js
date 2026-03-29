@@ -7,34 +7,33 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// General AI chat
 const aiChat = async (req, res) => {
   try {
     const { message, type, contextId } = req.body;
     let systemPrompt = '';
     
-    // Set system prompt based on type
     switch(type) {
       case 'summarize':
-        systemPrompt = 'You are an AI assistant that summarizes tasks and content. Provide concise, clear summaries.';
+        systemPrompt = 'You are an AI assistant that summarizes tasks and content. Provide concise, clear summaries with key takeaways.';
         break;
       case 'monetize':
-        systemPrompt = 'You are an AI assistant that helps monetize content and tasks. Provide practical monetization strategies and advice.';
+        systemPrompt = 'You are an AI assistant that helps monetize content and tasks. Provide practical monetization strategies, revenue opportunities, and actionable advice.';
         break;
       default:
-        systemPrompt = 'You are a helpful AI assistant for task management.';
+        systemPrompt = 'You are a helpful AI assistant for task management. Help users with their tasks, provide suggestions, and assist with productivity.';
     }
     
-    // Get context if provided
     let contextContent = '';
     if (contextId && type === 'summarize') {
       const task = await Task.findById(contextId);
       if (task) {
-        contextContent = `\n\nTask to summarize: ${task.title}\nDescription: ${task.description}`;
+        contextContent = `\n\nTask to summarize:\nTitle: ${task.title}\nDescription: ${task.description}\nPriority: ${task.priority}\nDue Date: ${task.dueDate}`;
       }
       
       const submission = await Submission.findById(contextId).populate('task');
       if (submission) {
-        contextContent = `\n\nSubmission to summarize: ${submission.content}\nTask: ${submission.task.title}`;
+        contextContent = `\n\nSubmission to summarize:\nContent: ${submission.content}\nTask: ${submission.task.title}`;
       }
     }
     
@@ -47,11 +46,11 @@ const aiChat = async (req, res) => {
       model: 'gpt-3.5-turbo',
       messages: messages,
       max_tokens: 500,
+      temperature: 0.7,
     });
     
     const aiResponse = completion.choices[0].message.content;
     
-    // Save chat history
     let chat = await Chat.findOne({ user: req.user._id, type });
     if (!chat) {
       chat = await Chat.create({
@@ -74,6 +73,7 @@ const aiChat = async (req, res) => {
   }
 };
 
+// Get chat history
 const getChatHistory = async (req, res) => {
   try {
     const chats = await Chat.find({ user: req.user._id }).sort({ createdAt: -1 });
@@ -83,21 +83,74 @@ const getChatHistory = async (req, res) => {
   }
 };
 
-const assessSubmission = async (req, res) => {
+// Summarize a specific task
+const summarizeTask = async (req, res) => {
   try {
-    const { submissionId } = req.params;
-    const submission = await Submission.findById(submissionId).populate('task user');
+    const { taskId } = req.params;
+    const task = await Task.findById(taskId);
     
-    if (!submission) {
-      return res.status(404).json({ message: 'Submission not found' });
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
     }
     
-    const systemPrompt = `You are an AI assistant that assesses task submissions. 
-    Evaluate the submission based on the task requirements and provide constructive feedback.`;
+    const messages = [
+      { role: 'system', content: 'You are an AI assistant that summarizes tasks. Provide a concise, clear summary with key points.' },
+      { role: 'user', content: `Summarize this task:\nTitle: ${task.title}\nDescription: ${task.description}\nPriority: ${task.priority}\nDue Date: ${task.dueDate}` }
+    ];
+    
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      messages: messages,
+      max_tokens: 300,
+    });
+    
+    res.json({ response: completion.choices[0].message.content });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Monetize a task
+const monetizeTask = async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const task = await Task.findById(taskId);
+    
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
     
     const messages = [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: `Task: ${submission.task.title}\nDescription: ${submission.task.description}\n\nSubmission: ${submission.content}\n\nPlease assess this submission.` }
+      { role: 'system', content: 'You are a monetization expert. Provide practical ways to monetize this task or its outcomes.' },
+      { role: 'user', content: `How can I monetize this task?\nTask: ${task.title}\nDescription: ${task.description}` }
+    ];
+    
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      messages: messages,
+      max_tokens: 400,
+    });
+    
+    res.json({ response: completion.choices[0].message.content });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Analyze uploaded file
+const analyzeFile = async (req, res) => {
+  try {
+    const { file } = req;
+    if (!file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+    
+    // Extract text from file (simplified for now)
+    const fileContent = file.buffer ? file.buffer.toString('utf-8') : 'File content';
+    
+    const messages = [
+      { role: 'system', content: 'You are an AI assistant that analyzes files and provides summaries and insights.' },
+      { role: 'user', content: `Please analyze this file and provide a summary, key points, and actionable insights:\n\n${fileContent.substring(0, 2000)}` }
     ];
     
     const completion = await openai.chat.completions.create({
@@ -106,14 +159,10 @@ const assessSubmission = async (req, res) => {
       max_tokens: 500,
     });
     
-    const aiFeedback = completion.choices[0].message.content;
-    submission.aiFeedback = aiFeedback;
-    await submission.save();
-    
-    res.json({ feedback: aiFeedback, submission });
+    res.json({ summary: completion.choices[0].message.content });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
-module.exports = { aiChat, getChatHistory, assessSubmission };
+module.exports = { aiChat, getChatHistory, summarizeTask, monetizeTask, analyzeFile };

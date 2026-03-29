@@ -1,16 +1,21 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { taskService } from "../services/taskService";
 import { categoryService } from "../services/categoryService";
+import { taskService } from "../services/taskService";
+import { authService } from "../services/authService";
+import CreateCategory from "./CreateCategory";
 import toast from "react-hot-toast";
-import "./compencat.css";
+import "./Categories.css";
 
 const Categories = () => {
-  const [tasks, setTasks] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState("");
+  const [tasks, setTasks] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [editForm, setEditForm] = useState({});
+  const user = authService.getUser();
+  const isAdmin = authService.isAdmin();
 
   useEffect(() => {
     fetchData();
@@ -19,182 +24,234 @@ const Categories = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      setError(null);
-      
-      // Fetch all tasks and categories
-      const [tasksData, categoriesData] = await Promise.all([
-        taskService.getUserTasks(),
-        categoryService.getCategories()
+      const [categoriesData, tasksData] = await Promise.all([
+        categoryService.getCategories(),
+        taskService.getUserTasks()
       ]);
-      
-      setTasks(tasksData);
       setCategories(categoriesData);
-      
-      // Set default selected category
+      setTasks(tasksData);
       if (categoriesData.length > 0) {
-        setSelectedCategory(categoriesData[0]._id);
+        setSelectedCategory(categoriesData[0]);
       }
     } catch (error) {
       console.error('Failed to fetch data:', error);
-      setError(error.message || 'Failed to load data');
       toast.error('Failed to load categories');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDeleteTask = async (taskId) => {
-    if (window.confirm('Are you sure you want to delete this task?')) {
+  const handleDeleteCategory = async (categoryId) => {
+    if (window.confirm('Are you sure you want to delete this category? All tasks in this category will also be deleted.')) {
       try {
-        await taskService.deleteTask(taskId);
-        toast.success('Task deleted successfully');
-        fetchData(); // Refresh data
+        await categoryService.deleteCategory(categoryId);
+        toast.success('Category deleted successfully');
+        fetchData();
       } catch (error) {
-        console.error('Failed to delete task:', error);
-        toast.error(error.message || 'Failed to delete task');
+        toast.error(error.message || 'Failed to delete category');
       }
     }
   };
 
-  const handleCompleteTask = async (taskId) => {
+  const handleEditCategory = (category) => {
+    setEditingCategory(category);
+    setEditForm({
+      name: category.name,
+      description: category.description || '',
+      color: category.color || '#6366f1',
+      icon: category.icon || '📁'
+    });
+  };
+
+  const handleUpdateCategory = async (e) => {
+    e.preventDefault();
     try {
-      await taskService.completeTask(taskId);
-      toast.success('Task marked as completed!');
-      fetchData(); // Refresh data
+      await categoryService.updateCategory(editingCategory._id, editForm);
+      toast.success('Category updated successfully');
+      setEditingCategory(null);
+      fetchData();
     } catch (error) {
-      console.error('Failed to complete task:', error);
-      toast.error(error.message || 'Failed to complete task');
+      toast.error('Failed to update category');
     }
   };
 
-  // Filter tasks by selected category
-  const filteredTasks = tasks.filter(
-    (task) => task.category?._id === selectedCategory
-  );
+  const getTasksForCategory = (categoryId) => {
+    return tasks.filter(task => task.category?._id === categoryId);
+  };
+
+  const colorOptions = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec489a", "#14b8a6", "#f97316"];
+  const iconOptions = ["📁", "💼", "🎨", "💻", "📚", "🏠", "💪", "🎯", "⭐", "🔥"];
 
   if (loading) {
-    return (
-      <div className="category-container">
-        <div className="loading-spinner">Loading categories...</div>
-      </div>
-    );
+    return <div className="loading">Loading categories...</div>;
   }
-
-  if (error) {
-    return (
-      <div className="category-container">
-        <div className="error-message">
-          <p>{error}</p>
-          <button onClick={fetchData} className="retry-btn">
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const selectedCategoryObj = categories.find(c => c._id === selectedCategory);
 
   return (
-    <div className="category-container">
-      {/* CATEGORY LIST */}
-      <div className="category-blocks">
-        <h2>Categories</h2>
-        {categories.length === 0 ? (
-          <p className="no-categories">No categories available</p>
-        ) : (
-          categories.map((category) => (
-            <div
-              key={category._id}
-              className={`category-item ${
-                selectedCategory === category._id ? "active" : ""
-              }`}
-              onClick={() => setSelectedCategory(category._id)}
-            >
-              {category.name}
-              <span className="category-count">
-                {tasks.filter(t => t.category?._id === category._id).length}
-              </span>
-            </div>
-          ))
-        )}
+    <div className="categories-container">
+      <div className="categories-header">
+        <h2>My Categories</h2>
+        <CreateCategory onCategoryCreated={fetchData} />
       </div>
 
-      {/* TASKS IN CATEGORY */}
-      <div className="task-blocks">
-        <h2>
-          {selectedCategoryObj?.name || "Selected"} Tasks
-          <span className="task-count-badge">
-            {filteredTasks.length} tasks
-          </span>
-        </h2>
-
-        {filteredTasks.length === 0 ? (
-          <div className="empty-state">
-            <p>No tasks in this category</p>
-            <Link to="/add" className="create-task-link">
-              Create your first task
-            </Link>
-          </div>
-        ) : (
-          filteredTasks.map((task) => (
-            <div key={task._id} className="task-card">
-              <Link to={`/task/${task._id}`} className="task-title">
-                {task.title}
-              </Link>
-              
-              <p className="task-description">
-                {task.description?.substring(0, 100)}
-                {task.description?.length > 100 && "..."}
-              </p>
-              
-              <div className="task-meta">
-                <span className={`urgency-badge ${task.urgency}`}>
-                  Urgency: {task.urgency?.replace('-', ' ') || 'Not set'}
-                </span>
-                <span className={`priority-badge ${task.priority}`}>
-                  Priority: {task.priority || 'Medium'}
-                </span>
-                {task.dueDate && (
-                  <span className="due-date-badge">
-                    Due: {new Date(task.dueDate).toLocaleDateString()}
-                  </span>
-                )}
+      <div className="categories-layout">
+        {/* Categories Sidebar */}
+        <div className="categories-sidebar">
+          {categories.length === 0 ? (
+            <div className="empty-categories">
+              <p>No categories yet. Create your first category!</p>
+            </div>
+          ) : (
+            categories.map(category => (
+              <div
+                key={category._id}
+                className={`category-item ${selectedCategory?._id === category._id ? 'active' : ''}`}
+                onClick={() => setSelectedCategory(category)}
+                style={{ borderLeftColor: category.color }}
+              >
+                <span className="category-icon">{category.icon}</span>
+                <span className="category-name">{category.name}</span>
+                <span className="category-count">{getTasksForCategory(category._id).length}</span>
               </div>
-              
-              {task.tags && task.tags.length > 0 && (
-                <div className="task-tags">
-                  {task.tags.map(tag => (
-                    <span key={tag} className="tag">#{tag}</span>
-                  ))}
+            ))
+          )}
+        </div>
+
+        {/* Tasks Display */}
+        <div className="categories-tasks">
+          {selectedCategory && (
+            <>
+              <div className="category-header" style={{ borderBottomColor: selectedCategory.color }}>
+                <div className="category-title">
+                  <span className="category-icon-large">{selectedCategory.icon}</span>
+                  <h3>{selectedCategory.name}</h3>
+                  {selectedCategory.description && <p>{selectedCategory.description}</p>}
                 </div>
-              )}
-              
-              <div className="task-actions">
-                <Link to={`/edit/${task._id}`} className="edit-link">
-                  Edit
-                </Link>
-                {task.status !== 'completed' && (
-                  <>
-                    <button 
-                      onClick={() => handleCompleteTask(task._id)}
-                      className="complete-btn"
-                    >
-                      Complete
+                {(user?._id === selectedCategory.createdBy?._id || isAdmin) && !selectedCategory.isDefault && (
+                  <div className="category-actions">
+                    <button onClick={() => handleEditCategory(selectedCategory)} className="edit-category-btn">
+                      Edit
                     </button>
-                    <button 
-                      onClick={() => handleDeleteTask(task._id)}
-                      className="delete-btn"
-                    >
+                    <button onClick={() => handleDeleteCategory(selectedCategory._id)} className="delete-category-btn">
                       Delete
                     </button>
-                  </>
+                  </div>
                 )}
               </div>
-            </div>
-          ))
-        )}
+
+              <div className="tasks-list">
+                {getTasksForCategory(selectedCategory._id).length === 0 ? (
+                  <div className="empty-tasks">
+                    <p>No tasks in this category</p>
+                    <Link to="/add" className="create-task-link">Create a task</Link>
+                  </div>
+                ) : (
+                  getTasksForCategory(selectedCategory._id).map(task => (
+                    <div key={task._id} className="task-card">
+                      <Link to={`/task/${task._id}`} className="task-title">
+                        {task.title}
+                      </Link>
+                      <p className="task-description">{task.description}</p>
+                      <div className="task-meta">
+                        <span className={`priority-badge ${task.priority}`}>{task.priority}</span>
+                        <span className={`status-badge ${task.status}`}>{task.status}</span>
+                        <span className="due-date">Due: {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No date'}</span>
+                      </div>
+                      <div className="task-actions">
+                        <Link to={`/edit/${task._id}`}>Edit</Link>
+                        <button onClick={async () => {
+                          try {
+                            await taskService.completeTask(task._id);
+                            toast.success('Task completed!');
+                            fetchData();
+                          } catch (error) {
+                            toast.error('Failed to complete task');
+                          }
+                        }}>Complete</button>
+                        {(!task.isAdminAssigned || isAdmin) && (
+                          <button onClick={async () => {
+                            if (window.confirm('Delete this task?')) {
+                              try {
+                                await taskService.deleteTask(task._id);
+                                toast.success('Task deleted');
+                                fetchData();
+                              } catch (error) {
+                                toast.error('Failed to delete task');
+                              }
+                            }
+                          }}>Delete</button>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
+
+      {/* Edit Category Modal */}
+      {editingCategory && (
+        <div className="modal-overlay" onClick={() => setEditingCategory(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h3>Edit Category</h3>
+            <form onSubmit={handleUpdateCategory}>
+              <div className="form-group">
+                <label>Category Name</label>
+                <input
+                  type="text"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Description</label>
+                <textarea
+                  value={editForm.description}
+                  onChange={(e) => setEditForm({...editForm, description: e.target.value})}
+                  rows="2"
+                />
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Color</label>
+                  <div className="color-picker">
+                    {colorOptions.map(color => (
+                      <button
+                        key={color}
+                        type="button"
+                        className={`color-option ${editForm.color === color ? 'selected' : ''}`}
+                        style={{ backgroundColor: color }}
+                        onClick={() => setEditForm({...editForm, color})}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>Icon</label>
+                  <div className="icon-picker">
+                    {iconOptions.map(icon => (
+                      <button
+                        key={icon}
+                        type="button"
+                        className={`icon-option ${editForm.icon === icon ? 'selected' : ''}`}
+                        onClick={() => setEditForm({...editForm, icon})}
+                      >
+                        {icon}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="modal-actions">
+                <button type="button" onClick={() => setEditingCategory(null)}>Cancel</button>
+                <button type="submit">Save Changes</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

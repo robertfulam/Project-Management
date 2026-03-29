@@ -1,4 +1,4 @@
-import api from './../services/api';
+import api from '../../services/api';
 
 export const authService = {
   // Register new user

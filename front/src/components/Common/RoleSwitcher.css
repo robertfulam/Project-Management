@@ -1,0 +1,28 @@
+.role-switcher {
+  position: fixed;
+  top: 70px;
+  right: 20px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.875rem;
+  z-index: 1000;
+  transition: all 0.2s;
+}
+
+.role-switcher.admin-mode {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+
+.role-switcher.user-mode {
+  background: #10b981;
+  color: white;
+}
+
+.role-switcher:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}

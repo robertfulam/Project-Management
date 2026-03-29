@@ -1,0 +1,170 @@
+.user-tasks {
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tasks-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.tasks-header h2 {
+  color: #333;
+  font-size: 1.5rem;
+}
+
+.tasks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+}
+
+.task-card {
+  background: #f9f9f9;
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.2s;
+  border: 1px solid #e5e5e5;
+}
+
+.task-card.overdue {
+  border-left: 4px solid #ef4444;
+  background: #fff5f5;
+}
+
+.task-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.task-header h3 {
+  color: #333;
+  font-size: 1.125rem;
+  flex: 1;
+}
+
+.task-badges {
+  display: flex;
+  gap: 8px;
+}
+
+.priority-badge {
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.priority-badge.critical { background: #fee; color: #ef4444; }
+.priority-badge.high { background: #fff3e0; color: #f97316; }
+.priority-badge.medium { background: #fef3c7; color: #f59e0b; }
+.priority-badge.low { background: #e0f2fe; color: #10b981; }
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.status-badge.pending { background: #fee; color: #ef4444; }
+.status-badge.in-progress { background: #fff3e0; color: #f59e0b; }
+.status-badge.completed { background: #e0f2fe; color: #10b981; }
+
+.task-description {
+  color: #666;
+  font-size: 14px;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.task-meta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 16px;
+}
+
+.task-due.overdue {
+  color: #ef4444;
+  font-weight: 500;
+}
+
+.task-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.edit-btn,
+.complete-btn,
+.delete-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.edit-btn {
+  background: #667eea;
+  color: white;
+}
+
+.complete-btn {
+  background: #10b981;
+  color: white;
+}
+
+.delete-btn {
+  background: #ef4444;
+  color: white;
+}
+
+.edit-btn:hover,
+.complete-btn:hover,
+.delete-btn:hover {
+  transform: translateY(-1px);
+  opacity: 0.9;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px;
+  color: #999;
+  font-size: 1rem;
+}
+
+@media (max-width: 768px) {
+  .user-tasks {
+    padding: 15px;
+  }
+  
+  .tasks-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .task-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

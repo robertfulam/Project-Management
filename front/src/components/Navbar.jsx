@@ -1,9 +1,9 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import "./Navbar.css";
-import ThemeToggle from "./ThemeToggle";
+import ThemeToggle from "../context/ThemeContext";
 import ProfileDropdown from "./ProfileDropdown";
-import { authService } from "../services/authService";
+import { authService } from "./services/authService";
 import { taskService } from "../services/taskService";
 
 function Navbar() {
