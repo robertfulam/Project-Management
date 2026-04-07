@@ -1,45 +1,25 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import Navbar from "./components/Navbar";
-import Dashboard from "./pages/Dashboard";
-import AddTask from "./pages/AddTask";
-import EditTask from "./pages/EditTask";
-import TaskDetails from "./pages/TaskDetails";
+import Navbar from "./components/Layout/Navbar";
+import AdminDashboard from "./components/Admin/AdminDashboard";
+import UserDashboard from "./components/User/UserDashboard";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
-import Complete from "./components/Complete";
-import Pending from "./components/Pending";
-import Categories from "./components/Categories";
-import Admin from "./pages/Admin";
-import UserProgress from "./components/UserProgress";
-import AdminProgress from "./components/AdminProgress";
-import { authService } from "./services/authService";
+import ForgotPassword from "./components/Common/ForgotPassword";
+import ResetPassword from "./components/Common/ResetPassword";
+import { authService } from "./components/services/authService";
+import RoleSwitcher from "./components/Common/RoleSwitcher";
 
-// Protected Route Component
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(null);
-  const [userRole, setUserRole] = useState(null);
-
-  useEffect(() => {
-    const checkAuth = () => {
-      const authenticated = authService.isAuthenticated();
-      const role = authService.getUserRole();
-      setIsAuthenticated(authenticated);
-      setUserRole(role);
-    };
-    checkAuth();
-  }, []);
-
-  if (isAuthenticated === null) {
-    return <div className="loading-spinner">Loading...</div>;
-  }
+  const isAuthenticated = authService.isAuthenticated();
+  const userRole = authService.getUserRole();
   
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" />;
   }
   
   if (requireAdmin && userRole !== 'admin') {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/user-dashboard" />;
   }
   
   return children;
@@ -47,82 +27,39 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
 
 function App() {
   const [isAdmin, setIsAdmin] = useState(false);
-  const [user, setUser] = useState(null);
 
   useEffect(() => {
     const checkAuth = () => {
-      const userData = authService.getUser();
-      const userRole = authService.getUserRole();
-      setUser(userData);
-      setIsAdmin(userRole === 'admin');
+      setIsAdmin(authService.isAdmin());
     };
-    
     checkAuth();
-    window.addEventListener('storage', checkAuth);
-    return () => window.removeEventListener('storage', checkAuth);
   }, []);
 
   return (
     <div className="app">
       <Navbar />
+      <RoleSwitcher />
       
       <Routes>
-        {/* Public Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
         
-        {/* Protected User Routes */}
+        <Route path="/admin-dashboard" element={
+          <ProtectedRoute requireAdmin>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/user-dashboard" element={
+          <ProtectedRoute>
+            <UserDashboard />
+          </ProtectedRoute>
+        } />
+        
         <Route path="/" element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        } />
-        <Route path="/add" element={
-          <ProtectedRoute>
-            <AddTask />
-          </ProtectedRoute>
-        } />
-        <Route path="/complete" element={
-          <ProtectedRoute>
-            <Complete />
-          </ProtectedRoute>
-        } />
-        <Route path="/pending" element={
-          <ProtectedRoute>
-            <Pending />
-          </ProtectedRoute>
-        } />
-        <Route path="/categories" element={
-          <ProtectedRoute>
-            <Categories />
-          </ProtectedRoute>
-        } />
-        <Route path="/progress" element={
-          <ProtectedRoute>
-            <UserProgress />
-          </ProtectedRoute>
-        } />
-        <Route path="/edit/:id" element={
-          <ProtectedRoute>
-            <EditTask />
-          </ProtectedRoute>
-        } />
-        <Route path="/task/:id" element={
-          <ProtectedRoute>
-            <TaskDetails />
-          </ProtectedRoute>
-        } />
-        
-        {/* Admin Routes */}
-        <Route path="/admin" element={
-          <ProtectedRoute requireAdmin>
-            <Admin />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin/progress" element={
-          <ProtectedRoute requireAdmin>
-            <AdminProgress />
-          </ProtectedRoute>
+          <Navigate to={isAdmin ? "/admin-dashboard" : "/user-dashboard"} />
         } />
       </Routes>
     </div>

@@ -1,0 +1,146 @@
+.all-pending {
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.pending-header {
+  margin-bottom: 24px;
+}
+
+.pending-header h2 {
+  color: #333;
+  font-size: 1.5rem;
+  margin-bottom: 16px;
+}
+
+.pending-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pending-task-card {
+  background: #f9f9f9;
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-left: 4px solid #f59e0b;
+}
+
+.pending-task-card.overdue {
+  border-left-color: #ef4444;
+  background: #fff5f5;
+}
+
+.pending-task-card:hover {
+  transform: translateX(5px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.task-header h3 {
+  color: #333;
+  font-size: 1.125rem;
+}
+
+.task-badges {
+  display: flex;
+  gap: 8px;
+}
+
+.priority-badge {
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.priority-badge.critical { background: #fee; color: #ef4444; }
+.priority-badge.high { background: #fff3e0; color: #f97316; }
+.priority-badge.medium { background: #fef3c7; color: #f59e0b; }
+.priority-badge.low { background: #e0f2fe; color: #10b981; }
+
+.urgency-badge {
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  background: #e0e7ff;
+  color: #667eea;
+}
+
+.task-description {
+  color: #666;
+  font-size: 14px;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.task-details {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 12px;
+}
+
+.task-due.overdue-date {
+  color: #ef4444;
+  font-weight: 500;
+}
+
+.task-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.complete-btn {
+  background: #10b981;
+  color: white;
+  padding: 6px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.complete-btn:hover {
+  background: #059669;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px;
+  color: #999;
+  font-size: 1rem;
+}
+
+@media (max-width: 768px) {
+  .all-pending {
+    padding: 15px;
+  }
+  
+  .task-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .task-details {
+    flex-direction: column;
+    gap: 8px;
+  }
+}

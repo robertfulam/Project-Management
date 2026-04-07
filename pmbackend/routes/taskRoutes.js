@@ -2,33 +2,31 @@ const express = require('express');
 const { protect } = require('../middleware/auth');
 const { adminOnly } = require('../middleware/admin');
 const {
-  createTask,
-  getTasks,
-  getTaskById,
-  updateTask,
-  deleteTask,
-  completeTask,
   getUserTasks,
+  getAllTasks,
+  getTaskById,
+  createTask,
+  updateTask,
+  completeTask,
+  deleteTask,
+  assignTaskToUsers
 } = require('../controllers/taskController');
 
 const router = express.Router();
 
-// All task routes are protected
+// All routes require authentication
 router.use(protect);
 
-// Task creation (admin only)
-router.post('/', adminOnly, createTask);
-
-// Get user's tasks
+// IMPORTANT: Specific routes MUST come before parameter routes
 router.get('/user', getUserTasks);
+router.get('/all', adminOnly, getAllTasks);
+router.post('/assign', adminOnly, assignTaskToUsers);
 
-// Get all tasks (admin only)
-router.get('/all', adminOnly, getTasks);
-
-// Task operations
+// Parameter routes (with :id) go AFTER specific routes
 router.get('/:id', getTaskById);
+router.put('/:id/complete', completeTask);
 router.put('/:id', adminOnly, updateTask);
 router.delete('/:id', adminOnly, deleteTask);
-router.put('/:id/complete', completeTask);
+router.post('/', adminOnly, createTask);
 
 module.exports = router;

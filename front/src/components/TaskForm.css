@@ -1,175 +1,391 @@
-.task-form {
-  max-width: 600px;
-  margin: 20px auto;
-  padding: 30px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
+import React, { useState, useEffect } from "react";
+import { categoryService } from "../services/categoryService";
+import { taskService } from "../services/taskService";
+import { authService } from "../services/authService";
+import toast from "react-hot-toast";
+import "./TaskForm.css";
 
-.task-form h2 {
-  margin-bottom: 24px;
-  color: #333;
-  font-size: 24px;
-  text-align: center;
-}
-
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
-  color: #555;
-  font-size: 14px;
-}
-
-.form-group input,
-.form-group select,
-.form-group textarea {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 14px;
-  transition: all 0.3s;
-  font-family: inherit;
-}
-
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.form-group input:disabled,
-.form-group select:disabled,
-.form-group textarea:disabled {
-  background-color: #f5f5f5;
-  cursor: not-allowed;
-}
-
-.category-select-wrapper {
-  display: flex;
-  gap: 10px;
-}
-
-.category-select-wrapper select {
-  flex: 1;
-}
-
-.category-select-wrapper button {
-  padding: 10px 20px;
-  white-space: nowrap;
-}
-
-.form-actions {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-  margin-top: 24px;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 10px 24px;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.btn-primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-}
-
-.btn-primary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  background: #6c757d;
-  color: white;
-  padding: 10px 24px;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: #5a6268;
-}
-
-/* Modal Styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal {
-  background: white;
-  padding: 24px;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 400px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-}
-
-.modal h3 {
-  margin-bottom: 16px;
-  color: #333;
-}
-
-.modal input {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  margin-bottom: 20px;
-}
-
-.modal-actions {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .task-form {
-    padding: 20px;
-    margin: 10px;
-  }
+const TaskForm = ({ initialData = {}, onSubmit, onCancel }) => {
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [newCategory, setNewCategory] = useState({
+    name: "",
+    description: "",
+    color: "#6366f1",
+    icon: "📁"
+  });
   
-  .category-select-wrapper {
-    flex-direction: column;
-  }
-  
-  .form-actions {
-    flex-direction: column;
-  }
-  
-  .form-actions button {
-    width: 100%;
-  }
-}
+  const [formData, setFormData] = useState({
+    title: initialData.title || "",
+    description: initialData.description || "",
+    category: initialData.category?._id || initialData.category || "",
+    priority: initialData.priority || "medium",
+    urgency: initialData.urgency || "moderate",
+    difficulty: initialData.difficulty || "medium",
+    dueDate: initialData.dueDate || "",
+    estimatedHours: initialData.estimatedHours || 1,
+    tags: initialData.tags || [],
+  });
+
+  const [selectedCategoryColor, setSelectedCategoryColor] = useState("#6366f1");
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const data = await categoryService.getCategories();
+      setCategories(data);
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
+      toast.error('Failed to load categories');
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value,
+    });
+  };
+
+  const handleTagChange = (e) => {
+    const tags = e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag);
+    setFormData({
+      ...formData,
+      tags: tags,
+    });
+  };
+
+  const handleCreateCategory = async (e) => {
+    e.preventDefault();
+    
+    if (!newCategory.name.trim()) {
+      toast.error('Category name is required');
+      return;
+    }
+    
+    setLoading(true);
+    
+    try {
+      const category = await categoryService.createCategory({
+        name: newCategory.name,
+        description: newCategory.description,
+        color: newCategory.color,
+        icon: newCategory.icon
+      });
+      
+      setCategories([...categories, category]);
+      setFormData({ ...formData, category: category._id });
+      setSelectedCategoryColor(category.color);
+      setShowCategoryModal(false);
+      setNewCategory({ name: "", description: "", color: "#6366f1", icon: "📁" });
+      toast.success('Category created successfully!');
+    } catch (error) {
+      console.error('Failed to create category:', error);
+      toast.error(error.message || 'Failed to create category');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!formData.title.trim()) {
+      toast.error('Task title is required');
+      return;
+    }
+    if (!formData.description.trim()) {
+      toast.error('Task description is required');
+      return;
+    }
+    if (!formData.category) {
+      toast.error('Please select a category');
+      return;
+    }
+    if (!formData.dueDate) {
+      toast.error('Due date is required');
+      return;
+    }
+    
+    setLoading(true);
+    
+    try {
+      if (onSubmit) {
+        await onSubmit(formData);
+      } else {
+        await taskService.createTask(formData);
+      }
+      toast.success('Task created successfully!');
+      
+      // Reset form
+      setFormData({
+        title: "",
+        description: "",
+        category: "",
+        priority: "medium",
+        urgency: "moderate",
+        difficulty: "medium",
+        dueDate: "",
+        estimatedHours: 1,
+        tags: [],
+      });
+      
+      if (onCancel) onCancel();
+    } catch (error) {
+      console.error('Failed to create task:', error);
+      toast.error(error.message || 'Failed to create task');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const colorOptions = [
+    "#6366f1", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec489a", "#14b8a6", "#f97316"
+  ];
+
+  const iconOptions = ["📁", "💼", "🎨", "💻", "📚", "🏠", "💪", "🎯", "⭐", "🔥"];
+
+  return (
+    <form className="task-form" onSubmit={handleSubmit}>
+      <h2>{initialData.title ? 'Edit Task' : 'Create New Task'}</h2>
+      
+      {/* Task Title */}
+      <div className="form-group">
+        <label>Task Title *</label>
+        <input
+          type="text"
+          name="title"
+          value={formData.title}
+          onChange={handleChange}
+          placeholder="Enter task title"
+          required
+          disabled={loading}
+        />
+      </div>
+
+      {/* Description */}
+      <div className="form-group">
+        <label>Description *</label>
+        <textarea
+          name="description"
+          value={formData.description}
+          onChange={handleChange}
+          placeholder="Enter task description"
+          rows="4"
+          required
+          disabled={loading}
+        />
+      </div>
+
+      {/* Category Selection with Create New Option */}
+      <div className="form-group">
+        <label>Category *</label>
+        <div className="category-select-wrapper">
+          <select
+            name="category"
+            value={formData.category}
+            onChange={handleChange}
+            required
+            disabled={loading}
+            style={{ borderColor: selectedCategoryColor }}
+          >
+            <option value="">Select a category</option>
+            {categories.map((cat) => (
+              <option key={cat._id} value={cat._id} style={{ backgroundColor: `${cat.color}10` }}>
+                {cat.icon} {cat.name}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => setShowCategoryModal(true)}
+            className="btn-secondary"
+            disabled={loading}
+          >
+            + New Category
+          </button>
+        </div>
+      </div>
+
+      {/* Priority, Urgency, Difficulty */}
+      <div className="form-row">
+        <div className="form-group">
+          <label>Priority</label>
+          <select
+            name="priority"
+            value={formData.priority}
+            onChange={handleChange}
+            disabled={loading}
+          >
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="critical">Critical</option>
+          </select>
+        </div>
+
+        <div className="form-group">
+          <label>Urgency</label>
+          <select
+            name="urgency"
+            value={formData.urgency}
+            onChange={handleChange}
+            disabled={loading}
+          >
+            <option value="not-urgent">Not Urgent</option>
+            <option value="moderate">Moderate</option>
+            <option value="urgent">Urgent</option>
+            <option value="very-urgent">Very Urgent</option>
+          </select>
+        </div>
+
+        <div className="form-group">
+          <label>Difficulty</label>
+          <select
+            name="difficulty"
+            value={formData.difficulty}
+            onChange={handleChange}
+            disabled={loading}
+          >
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+            <option value="expert">Expert</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Due Date and Estimated Hours */}
+      <div className="form-row">
+        <div className="form-group">
+          <label>Due Date *</label>
+          <input
+            type="datetime-local"
+            name="dueDate"
+            value={formData.dueDate}
+            onChange={handleChange}
+            required
+            disabled={loading}
+          />
+        </div>
+
+        <div className="form-group">
+          <label>Estimated Hours</label>
+          <input
+            type="number"
+            name="estimatedHours"
+            value={formData.estimatedHours}
+            onChange={handleChange}
+            min="0"
+            step="0.5"
+            disabled={loading}
+          />
+        </div>
+      </div>
+
+      {/* Tags */}
+      <div className="form-group">
+        <label>Tags (comma-separated)</label>
+        <input
+          type="text"
+          name="tags"
+          value={formData.tags.join(', ')}
+          onChange={handleTagChange}
+          placeholder="e.g., design, urgent, frontend"
+          disabled={loading}
+        />
+      </div>
+
+      {/* Form Actions */}
+      <div className="form-actions">
+        {onCancel && (
+          <button type="button" onClick={onCancel} className="btn-secondary" disabled={loading}>
+            Cancel
+          </button>
+        )}
+        <button type="submit" className="btn-primary" disabled={loading}>
+          {loading ? 'Creating...' : (initialData.title ? 'Update Task' : 'Create Task')}
+        </button>
+      </div>
+
+      {/* Create Category Modal */}
+      {showCategoryModal && (
+        <div className="modal-overlay" onClick={() => setShowCategoryModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Create New Category</h3>
+            <form onSubmit={handleCreateCategory}>
+              <div className="form-group">
+                <label>Category Name *</label>
+                <input
+                  type="text"
+                  value={newCategory.name}
+                  onChange={(e) => setNewCategory({...newCategory, name: e.target.value})}
+                  placeholder="Enter category name"
+                  required
+                  autoFocus
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>Description (optional)</label>
+                <textarea
+                  value={newCategory.description}
+                  onChange={(e) => setNewCategory({...newCategory, description: e.target.value})}
+                  placeholder="Enter category description"
+                  rows="2"
+                />
+              </div>
+              
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Color</label>
+                  <div className="color-picker">
+                    {colorOptions.map(color => (
+                      <button
+                        key={color}
+                        type="button"
+                        className={`color-option ${newCategory.color === color ? 'selected' : ''}`}
+                        style={{ backgroundColor: color }}
+                        onClick={() => setNewCategory({...newCategory, color})}
+                      />
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="form-group">
+                  <label>Icon</label>
+                  <div className="icon-picker">
+                    {iconOptions.map(icon => (
+                      <button
+                        key={icon}
+                        type="button"
+                        className={`icon-option ${newCategory.icon === icon ? 'selected' : ''}`}
+                        onClick={() => setNewCategory({...newCategory, icon})}
+                      >
+                        {icon}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="modal-actions">
+                <button type="button" onClick={() => setShowCategoryModal(false)}>Cancel</button>
+                <button type="submit" disabled={loading}>
+                  {loading ? 'Creating...' : 'Create Category'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </form>
+  );
+};
+
+export default TaskForm;
