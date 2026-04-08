@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom'; // ✅ added Link import (important)
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { authService } from '../services/authService';
 import toast from 'react-hot-toast';
 import './ResetPassword.css';
@@ -10,6 +10,7 @@ const ResetPassword = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -28,15 +29,34 @@ const ResetPassword = () => {
     
     try {
       await authService.resetPassword(token, password);
+      setResetSuccess(true);
       toast.success('Password reset successful! Please login.');
-      navigate('/login');
+      setTimeout(() => {
+        navigate('/login');
+      }, 3000);
     } catch (error) {
       console.error('Reset password error:', error);
-      toast.error(error || 'Failed to reset password'); // ✅ FIXED
+      // ✅ FIXED: properly extract error message
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to reset password';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
+
+  if (resetSuccess) {
+    return (
+      <div className="reset-password-container">
+        <div className="reset-password-card">
+          <div className="success-icon">✅</div>
+          <h2>Password Reset Successful!</h2>
+          <p>Your password has been successfully reset.</p>
+          <p>Redirecting you to login page...</p>
+          <Link to="/login" className="btn-primary">Go to Login</Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="reset-password-container">

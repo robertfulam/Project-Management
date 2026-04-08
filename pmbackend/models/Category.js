@@ -4,34 +4,31 @@ const categorySchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
-    trim: true,
+    trim: true
   },
   description: {
     type: String,
-    default: '',
+    default: ''
   },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
+    required: true
   },
   isDefault: {
     type: Boolean,
-    default: false,
+    default: false
   },
   color: {
     type: String,
-    default: '#6366f1',
+    default: '#6366f1'
   },
   icon: {
     type: String,
-    default: '📁',
-  },
+    default: '📁'
+  }
 }, {
-  timestamps: true,
+  timestamps: true
 });
-
-// Ensure unique category names per user
-categorySchema.index({ name: 1, createdBy: 1 }, { unique: true });
 
 module.exports = mongoose.model('Category', categorySchema);

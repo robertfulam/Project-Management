@@ -17,16 +17,20 @@ const router = express.Router();
 // All routes require authentication
 router.use(protect);
 
-// IMPORTANT: Specific routes MUST come before parameter routes
-router.get('/user', getUserTasks);
-router.get('/all', adminOnly, getAllTasks);
-router.post('/assign', adminOnly, assignTaskToUsers);
+// ============================================
+// SPECIFIC ROUTES (no :id parameter) - MUST COME FIRST
+// ============================================
+router.get('/user', getUserTasks);           // Get user's own tasks
+router.get('/all', adminOnly, getAllTasks);   // Get all tasks (admin only)
+router.post('/assign', adminOnly, assignTaskToUsers);  // Assign tasks (admin only)
 
-// Parameter routes (with :id) go AFTER specific routes
-router.get('/:id', getTaskById);
-router.put('/:id/complete', completeTask);
-router.put('/:id', adminOnly, updateTask);
-router.delete('/:id', adminOnly, deleteTask);
-router.post('/', adminOnly, createTask);
+// ============================================
+// PARAMETER ROUTES (with :id) - COME AFTER SPECIFIC ROUTES
+// ============================================
+router.get('/:id', getTaskById);              // Get task by ID
+router.put('/:id/complete', completeTask);    // Complete task
+router.put('/:id', updateTask);               // Update task
+router.delete('/:id', deleteTask);            // Delete task
+router.post('/', createTask);                 // ✅ Create task - ANY AUTHENTICATED USER
 
 module.exports = router;

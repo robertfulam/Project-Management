@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { taskService } from '../../services/taskService';
-import { categoryService } from '../../services/categoryService';
-import { authService } from '../services/authService';
-import AdminProgress from './AdminProgress';
-import UserManagement from './UserManagement';
-import AllTasks from './AllTasks';
-import AllCategories from './AllCategories';
-import AllPending from './AllPending';
-import AllComplete from './AllComplete';
-import AdminAssignTask from './AdminAssignTask';
-import AIAssistant from '../Common/AIAssistant';
-import './AdminDashboard.css';
+import { taskService } from '../services/taskService';
+import { categoryService } from '../components/services/categoryService';
+import { authService } from '../components/services/authService';
+import AdminProgress from '../components/Admin/AdminProgress';
+import UserManagement from '../components/Admin/UserManagement';
+import AllTasks from '../components/Admin/AllTasks';
+import AllCategories from '../components/Admin/AllCategories';
+import AllPending from '../components/Admin/AllPending';
+import AllComplete from '../components/Admin/AllComplete';
+import AdminAssignTask from '../components/Admin/AdminAssignTask';
+import AIAssistant from '../components/Common/AIAssistant';
+import '../components/Admin/AdminDashboard.css';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -25,6 +25,7 @@ const AdminDashboard = () => {
   const [selectedTask, setSelectedTask] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -33,32 +34,67 @@ const AdminDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const [allTasks, allCategories, usersRes] = await Promise.all([
-        taskService.getAllTasks(),
-        categoryService.getCategories(),
-        fetch('http://localhost:9000/api/admin/users', {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        })
-      ]);
+      setError(null);
       
-      const users = await usersRes.json();
+      // Fetch all tasks - ensure we get an array
+      let allTasksData = [];
+      try {
+        const tasksResponse = await taskService.getAllTasks();
+        // Handle different response structures
+        allTasksData = Array.isArray(tasksResponse) ? tasksResponse : 
+                       tasksResponse?.tasks ? tasksResponse.tasks : 
+                       tasksResponse?.data ? tasksResponse.data : [];
+      } catch (err) {
+        console.error('Failed to fetch tasks:', err);
+        allTasksData = [];
+      }
+      
+      // Fetch all categories
+      let allCategoriesData = [];
+      try {
+        const categoriesResponse = await categoryService.getCategories();
+        allCategoriesData = Array.isArray(categoriesResponse) ? categoriesResponse : 
+                           categoriesResponse?.categories ? categoriesResponse.categories : [];
+      } catch (err) {
+        console.error('Failed to fetch categories:', err);
+        allCategoriesData = [];
+      }
+      
+      // Fetch users
+      let usersArray = [];
+      try {
+        const usersRes = await fetch('http://localhost:9000/api/admin/users', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        if (usersRes.ok) {
+          const usersData = await usersRes.json();
+          usersArray = Array.isArray(usersData) ? usersData : 
+                      usersData?.users ? usersData.users : 
+                      usersData?.data ? usersData.data : [];
+        }
+      } catch (err) {
+        console.error('Failed to fetch users:', err);
+      }
+      
       const today = new Date().toDateString();
-      const completedToday = allTasks.filter(t => 
-        t.status === 'completed' && 
+      const completedTodayCount = allTasksData.filter(t => 
+        t && t.status === 'completed' && 
+        t.completedAt && 
         new Date(t.completedAt).toDateString() === today
       ).length;
       
       setStats({
-        totalUsers: users.length,
-        totalTasks: allTasks.length,
-        completedToday: completedToday,
-        totalCategories: allCategories.length,
-        assignedTasks: allTasks.filter(t => t.assignedTo).length,
-        assignedCategories: new Set(allTasks.map(t => t.category?._id)).size
+        totalUsers: usersArray.length,
+        totalTasks: allTasksData.length,
+        completedToday: completedTodayCount,
+        totalCategories: allCategoriesData.length,
+        assignedTasks: allTasksData.filter(t => t && t.assignedTo).length,
+        assignedCategories: new Set(allTasksData.map(t => t?.category?._id).filter(Boolean)).size
       });
-      setTasks(allTasks);
+      setTasks(allTasksData);
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
+      setError(error.message || 'Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
@@ -68,7 +104,25 @@ const AdminDashboard = () => {
     setSelectedTask(task);
   };
 
-  if (loading) return <div className="loading">Loading Admin Dashboard...</div>;
+  if (loading) {
+    return (
+      <div className="admin-dashboard-loading">
+        <div className="loading-spinner"></div>
+        <p>Loading Admin Dashboard...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="admin-dashboard-error">
+        <div className="error-icon">⚠️</div>
+        <h3>Error Loading Dashboard</h3>
+        <p>{error}</p>
+        <button onClick={fetchDashboardData} className="retry-btn">Retry</button>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-dashboard">
@@ -161,12 +215,12 @@ const AdminDashboard = () => {
         {activeTab === 'assign' && <AdminAssignTask onAssign={fetchDashboardData} />}
         {activeTab === 'tasks' && <AllTasks tasks={tasks} onUpdate={fetchDashboardData} onTaskSelect={handleTaskSelect} />}
         {activeTab === 'categories' && <AllCategories onUpdate={fetchDashboardData} />}
-        {activeTab === 'pending' && <AllPending tasks={tasks.filter(t => t.status !== 'completed')} onUpdate={fetchDashboardData} onTaskSelect={handleTaskSelect} />}
-        {activeTab === 'complete' && <AllComplete tasks={tasks.filter(t => t.status === 'completed')} onUpdate={fetchDashboardData} onTaskSelect={handleTaskSelect} />}
+        {activeTab === 'pending' && <AllPending tasks={tasks.filter(t => t && t.status !== 'completed')} onUpdate={fetchDashboardData} onTaskSelect={handleTaskSelect} />}
+        {activeTab === 'complete' && <AllComplete tasks={tasks.filter(t => t && t.status === 'completed')} onUpdate={fetchDashboardData} onTaskSelect={handleTaskSelect} />}
         {activeTab === 'users' && <UserManagement onUpdate={fetchDashboardData} />}
       </div>
     </div>
   );
 };
 
-export default AdminDashboard;
+export default AdminDashboard; 

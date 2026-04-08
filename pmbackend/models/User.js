@@ -27,29 +27,41 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
-  resetPasswordToken: String,
-  resetPasswordExpire: Date,
+  resetPasswordToken: {
+    type: String,
+    default: null
+  },
+  resetPasswordExpire: {
+    type: Date,
+    default: null
+  },
 }, {
   timestamps: true,
 });
 
-
-// ✅ FIXED: Async pre-save hook (NO next, NO callbacks)
-userSchema.pre('save', async function () {
-  if (!this.isModified('password') || !this.password) return;
-
-  this.password = await bcrypt.hash(this.password, 10);
+// ✅ FIXED: Hash password before saving (async/await version)
+userSchema.pre('save', async function(next) {
+  // Only hash the password if it has been modified (or is new)
+  if (!this.isModified('password')) {
+    return next();
+  }
+  
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (error) {
+    next(error);
+  }
 });
 
-
 // Compare password method
-userSchema.methods.comparePassword = async function (candidatePassword) {
-  return bcrypt.compare(candidatePassword, this.password);
+userSchema.methods.comparePassword = async function(candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.password);
 };
 
-
-// Remove sensitive fields from JSON
-userSchema.methods.toJSON = function () {
+// Remove password from JSON response
+userSchema.methods.toJSON = function() {
   const obj = this.toObject();
   delete obj.password;
   delete obj.__v;

@@ -2,11 +2,12 @@ import api from './api';
 
 export const aiService = {
   // General chat
-  chat: async (message, type = 'chat') => {
+  chat: async (message, type = 'chat', contextId = null) => {
     try {
       const response = await api.post('/ai/chat', { 
         message, 
-        type 
+        type,
+        contextId 
       });
       return response.data;
     } catch (error) {
@@ -17,11 +18,7 @@ export const aiService = {
   // Summarize a task
   summarizeTask: async (taskId) => {
     try {
-      const response = await api.post('/ai/chat', {
-        message: `Please summarize this task and provide key insights.`,
-        type: 'summarize',
-        contextId: taskId
-      });
+      const response = await api.post(`/ai/summarize/${taskId}`);
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
@@ -31,11 +28,7 @@ export const aiService = {
   // Get monetization advice for a task
   monetizeTask: async (taskId) => {
     try {
-      const response = await api.post('/ai/chat', {
-        message: `Please provide monetization strategies and opportunities for this task.`,
-        type: 'monetize',
-        contextId: taskId
-      });
+      const response = await api.post(`/ai/monetize/${taskId}`);
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;

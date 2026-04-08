@@ -24,10 +24,11 @@ const ForgotPassword = () => {
       const response = await authService.forgotPassword(email);
       console.log('Reset response:', response);
       setSubmitted(true);
-      toast.success('Password reset link sent!');
+      toast.success('Password reset link sent to your email!');
     } catch (error) {
-      console.error("Forgot password error:");
-      const errorMessage = error || 'Failed to send reset link'; // ✅ FIXED LINE
+      console.error('Forgot password error:', error);
+      // ✅ FIXED: properly extract error message
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to send reset link';
       toast.error(errorMessage);
     } finally {
       setLoading(false);

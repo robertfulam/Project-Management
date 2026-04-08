@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const Task = require('../models/Task');
 const Category = require('../models/Category');
@@ -7,10 +8,22 @@ const Category = require('../models/Category');
 // @access  Private/Admin
 const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().select('-password');
-    res.json(users);
+    const users = await User.find()
+      .select('-password')
+      .sort({ createdAt: -1 });
+    
+    res.json({
+      success: true,
+      count: users.length,
+      users
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error('Get all users error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error fetching users',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
@@ -19,13 +32,34 @@ const getAllUsers = async (req, res) => {
 // @access  Private/Admin
 const getUserById = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select('-password');
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    const { id } = req.params;
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Invalid user ID format' 
+      });
     }
-    res.json(user);
+    
+    const user = await User.findById(id).select('-password');
+    if (!user) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'User not found' 
+      });
+    }
+    
+    res.json({
+      success: true,
+      user
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error('Get user by ID error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error fetching user',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
@@ -36,27 +70,60 @@ const createUser = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
     
-    const userExists = await User.findOne({ email });
+    // Validate required fields
+    if (!name || !name.trim()) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Name is required' 
+      });
+    }
+    if (!email || !email.trim()) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Email is required' 
+      });
+    }
+    if (!password || password.length < 6) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Password must be at least 6 characters' 
+      });
+    }
+    
+    // Check if user already exists
+    const userExists = await User.findOne({ email: email.toLowerCase() });
     if (userExists) {
-      return res.status(400).json({ message: 'User already exists' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'User already exists with this email' 
+      });
     }
     
     const user = await User.create({
-      name,
-      email,
+      name: name.trim(),
+      email: email.toLowerCase(),
       password,
       role: role || 'user'
     });
     
     res.status(201).json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      createdAt: user.createdAt
+      success: true,
+      message: 'User created successfully',
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt
+      }
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error('Create user error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error creating user',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
@@ -65,29 +132,75 @@ const createUser = async (req, res) => {
 // @access  Private/Admin
 const updateUser = async (req, res) => {
   try {
+    const { id } = req.params;
     const { name, email, role, isActive } = req.body;
-    const user = await User.findById(req.params.id);
     
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Invalid user ID format' 
+      });
     }
     
-    if (name) user.name = name;
-    if (email) user.email = email;
-    if (role) user.role = role;
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'User not found' 
+      });
+    }
+    
+    // Update fields
+    if (name && name.trim()) user.name = name.trim();
+    if (email && email.trim()) {
+      // Check if email is already taken by another user
+      const emailExists = await User.findOne({ 
+        email: email.toLowerCase(), 
+        _id: { $ne: id } 
+      });
+      if (emailExists) {
+        return res.status(400).json({ 
+          success: false,
+          message: 'Email already in use by another user' 
+        });
+      }
+      user.email = email.toLowerCase();
+    }
+    if (role) {
+      // Prevent removing the last admin
+      if (user.role === 'admin' && role !== 'admin') {
+        const adminCount = await User.countDocuments({ role: 'admin' });
+        if (adminCount === 1) {
+          return res.status(400).json({ 
+            success: false,
+            message: 'Cannot change role of the last admin' 
+          });
+        }
+      }
+      user.role = role;
+    }
     if (isActive !== undefined) user.isActive = isActive;
     
     await user.save();
     
     res.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      isActive: user.isActive
+      success: true,
+      message: 'User updated successfully',
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isActive: user.isActive
+      }
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error('Update user error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error updating user',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
@@ -96,31 +209,56 @@ const updateUser = async (req, res) => {
 // @access  Private/Admin
 const deleteUser = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
+    const { id } = req.params;
     
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Invalid user ID format' 
+      });
+    }
+    
+    const user = await User.findById(id);
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ 
+        success: false,
+        message: 'User not found' 
+      });
     }
     
     // Prevent deleting the last admin
     if (user.role === 'admin') {
       const adminCount = await User.countDocuments({ role: 'admin' });
       if (adminCount === 1) {
-        return res.status(400).json({ message: 'Cannot delete the last admin user' });
+        return res.status(400).json({ 
+          success: false,
+          message: 'Cannot delete the last admin user' 
+        });
       }
     }
     
-    // Delete user's tasks
-    await Task.deleteMany({ assignedTo: user._id });
+    // Soft delete user's tasks
+    await Task.updateMany(
+      { assignedTo: user._id },
+      { isDeleted: true, deletedAt: new Date() }
+    );
     
-    // Delete user's categories
-    await Category.deleteMany({ createdBy: user._id });
+    // Delete user's categories (non-default ones)
+    await Category.deleteMany({ createdBy: user._id, isDefault: false });
     
     await user.deleteOne();
     
-    res.json({ message: 'User deleted successfully' });
+    res.json({ 
+      success: true,
+      message: 'User deleted successfully' 
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error('Delete user error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error deleting user',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
@@ -129,24 +267,62 @@ const deleteUser = async (req, res) => {
 // @access  Private/Admin
 const updateUserRole = async (req, res) => {
   try {
+    const { id } = req.params;
     const { role } = req.body;
-    const user = await User.findById(req.params.id);
     
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Invalid user ID format' 
+      });
+    }
+    
+    if (!role || !['user', 'admin'].includes(role)) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Invalid role. Must be "user" or "admin"' 
+      });
+    }
+    
+    const user = await User.findById(id);
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ 
+        success: false,
+        message: 'User not found' 
+      });
+    }
+    
+    // Prevent changing role of the last admin
+    if (user.role === 'admin' && role !== 'admin') {
+      const adminCount = await User.countDocuments({ role: 'admin' });
+      if (adminCount === 1) {
+        return res.status(400).json({ 
+          success: false,
+          message: 'Cannot change role of the last admin' 
+        });
+      }
     }
     
     user.role = role;
     await user.save();
     
     res.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role
+      success: true,
+      message: 'User role updated successfully',
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error('Update user role error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error updating user role',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
@@ -176,17 +352,25 @@ const getAdminStats = async (req, res) => {
     const totalCategories = await Category.countDocuments();
     
     res.json({
-      totalUsers,
-      totalTasks,
-      completedTasks,
-      pendingTasks,
-      inProgressTasks,
-      completedToday,
-      totalCategories,
-      completionRate: totalTasks > 0 ? (completedTasks / totalTasks * 100).toFixed(1) : 0
+      success: true,
+      stats: {
+        totalUsers,
+        totalTasks,
+        completedTasks,
+        pendingTasks,
+        inProgressTasks,
+        completedToday,
+        totalCategories,
+        completionRate: totalTasks > 0 ? (completedTasks / totalTasks * 100).toFixed(1) : 0
+      }
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error('Get admin stats error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error fetching statistics',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 

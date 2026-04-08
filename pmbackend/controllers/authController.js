@@ -1,11 +1,21 @@
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const nodemailer = require('nodemailer');
 const User = require('../models/User');
 
 // Generate JWT Token
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 };
+
+// Configure email transporter
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
 
 // @desc    Register user
 const register = async (req, res) => {
@@ -80,7 +90,7 @@ const getMe = async (req, res) => {
   }
 };
 
-// @desc    Forgot password - FIXED
+// @desc    Forgot password - WITH EMAIL SENDING
 const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -106,22 +116,45 @@ const forgotPassword = async (req, res) => {
     await user.save({ validateBeforeSave: false });
     
     // Create reset URL
-    const resetUrl = `http://localhost:3000/reset-password/${resetToken}`;
+    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password/${resetToken}`;
     
-    console.log('Reset URL:', resetUrl);
+    // Email content
+    const mailOptions = {
+      from: `"Task Manager" <${process.env.EMAIL_USER}>`,
+      to: user.email,
+      subject: 'Password Reset Request',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #6366f1;">Password Reset Request</h2>
+          <p>Hello ${user.name},</p>
+          <p>You requested a password reset for your Task Manager account. Click the button below to reset your password:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetUrl}" style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; display: inline-block;">Reset Password</a>
+          </div>
+          <p>Or copy this link: <a href="${resetUrl}">${resetUrl}</a></p>
+          <p>This link expires in 10 minutes.</p>
+          <p>If you didn't request this, please ignore this email.</p>
+          <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 20px 0;">
+          <p style="color: #666; font-size: 12px;">Task Manager App</p>
+        </div>
+      `
+    };
     
-    // For development, return the URL
+    // Send email
+    await transporter.sendMail(mailOptions);
+    
+    console.log('Reset email sent to:', user.email);
+    
     res.json({
       success: true,
-      message: 'Password reset email sent',
-      resetUrl: resetUrl
+      message: 'Password reset email sent successfully'
     });
   } catch (error) {
     console.error('Forgot password error details:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Server error processing request',
-      error: error.message 
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -151,6 +184,25 @@ const resetPassword = async (req, res) => {
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
     await user.save();
+    
+    // Send confirmation email
+    const mailOptions = {
+      from: `"Task Manager" <${process.env.EMAIL_USER}>`,
+      to: user.email,
+      subject: 'Password Reset Successful',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #10b981;">Password Reset Successful</h2>
+          <p>Hello ${user.name},</p>
+          <p>Your password has been successfully reset.</p>
+          <p>If you did not perform this action, please contact support immediately.</p>
+          <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 20px 0;">
+          <p style="color: #666; font-size: 12px;">Task Manager App</p>
+        </div>
+      `
+    };
+    
+    await transporter.sendMail(mailOptions);
     
     res.json({ success: true, message: 'Password reset successful' });
   } catch (error) {

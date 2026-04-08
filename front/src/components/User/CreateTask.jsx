@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { taskService } from "../../services/taskService";
-import { categoryService } from "../services/categoryService";
-import { authService } from "../services/authService";
+import { categoryService } from "../../services/categoryService";
+import { authService } from "../../services/authService";
 import toast from "react-hot-toast";
 import "./CreateTask.css";
 
-const CreateTask = () => {
+const CreateTask = ({ onTaskCreated }) => {
   const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -39,7 +39,8 @@ const CreateTask = () => {
   const fetchCategories = async () => {
     try {
       const data = await categoryService.getCategories();
-      setCategories(data);
+      const categoriesArray = Array.isArray(data) ? data : data?.categories || data?.data || [];
+      setCategories(categoriesArray);
     } catch (error) {
       console.error('Failed to fetch categories:', error);
       toast.error('Failed to load categories');
@@ -52,7 +53,6 @@ const CreateTask = () => {
       ...formData,
       [name]: value,
     });
-    // Update selected category color when category changes
     if (name === 'category') {
       const selectedCat = categories.find(c => c._id === value);
       if (selectedCat) {
@@ -79,14 +79,9 @@ const CreateTask = () => {
         icon: newCategory.icon
       });
       
-      // Refresh categories list
       await fetchCategories();
-      
-      // Auto-select the newly created category
       setFormData({ ...formData, category: category._id });
       setSelectedCategoryColor(category.color);
-      
-      // Reset new category form
       setNewCategory({ name: "", description: "", color: "#6366f1", icon: "📁" });
       setShowNewCategory(false);
       
@@ -123,13 +118,18 @@ const CreateTask = () => {
     setLoading(true);
     
     try {
-      const currentUser = authService.getUser();
-      
-      // Prepare task data
+      // Prepare task data - DO NOT include assignedTo field
+      // The backend will automatically assign the task to the current user
       const taskData = {
-        ...formData,
+        title: formData.title,
+        description: formData.description,
+        category: formData.category,
+        priority: formData.priority,
+        urgency: formData.urgency,
+        difficulty: formData.difficulty,
+        dueDate: formData.dueDate,
+        estimatedHours: formData.estimatedHours,
         tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
-        assignedTo: currentUser?._id,
       };
       
       await taskService.createTask(taskData);
@@ -148,8 +148,11 @@ const CreateTask = () => {
         tags: "",
       });
       
-      // Navigate back to dashboard
-      navigate('/');
+      if (onTaskCreated) {
+        onTaskCreated();
+      } else {
+        navigate('/');
+      }
     } catch (error) {
       console.error('Failed to create task:', error);
       toast.error(error.message || 'Failed to create task');
@@ -159,15 +162,15 @@ const CreateTask = () => {
   };
 
   const colorOptions = [
-    "#6366f1", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec489a", "#14b8a6", "#f97316"
+    "#6366f1", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", 
+    "#ec489a", "#14b8a6", "#f97316"
   ];
 
   const iconOptions = ["📁", "💼", "🎨", "💻", "📚", "🏠", "💪", "🎯", "⭐", "🔥"];
 
-  // Group categories by user ownership
   const currentUser = authService.getUser();
   const userCategories = categories.filter(cat => cat.createdBy?._id === currentUser?._id);
-  const defaultCategories = categories.filter(cat => cat.isDefault || cat.createdBy?._id !== currentUser?._id);
+  const defaultCategories = categories.filter(cat => cat.isDefault);
 
   return (
     <div className="create-task-container">
@@ -224,7 +227,7 @@ const CreateTask = () => {
                 {userCategories.length > 0 && (
                   <optgroup label="📁 My Categories">
                     {userCategories.map((cat) => (
-                      <option key={cat._id} value={cat._id} style={{ backgroundColor: `${cat.color}10` }}>
+                      <option key={cat._id} value={cat._id}>
                         {cat.icon} {cat.name}
                       </option>
                     ))}
@@ -234,7 +237,7 @@ const CreateTask = () => {
                 {defaultCategories.length > 0 && (
                   <optgroup label="🌟 Default Categories">
                     {defaultCategories.map((cat) => (
-                      <option key={cat._id} value={cat._id} style={{ backgroundColor: `${cat.color}10` }}>
+                      <option key={cat._id} value={cat._id}>
                         {cat.icon} {cat.name}
                       </option>
                     ))}
@@ -247,7 +250,6 @@ const CreateTask = () => {
                 onClick={() => setShowNewCategory(true)}
                 className="btn-new-category"
                 disabled={loading}
-                title="Create a new category"
               >
                 + New Category
               </button>

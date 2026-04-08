@@ -1,113 +1,293 @@
+/* ============================================
+   CSS VARIABLES FOR THEME SUPPORT
+   ============================================ */
+:root {
+  /* Light Theme */
+  --user-bg-primary: #ffffff;
+  --user-bg-secondary: #f8fafc;
+  --user-text-primary: #1e293b;
+  --user-text-secondary: #64748b;
+  --user-text-muted: #94a3b8;
+  --user-border: #e2e8f0;
+  --user-card-bg: #ffffff;
+  --user-card-hover: #f1f5f9;
+  --user-shadow: rgba(0, 0, 0, 0.05);
+  --user-shadow-hover: rgba(0, 0, 0, 0.1);
+  --user-gradient-start: #667eea;
+  --user-gradient-end: #764ba2;
+  --user-success: #10b981;
+  --user-warning: #f59e0b;
+  --user-danger: #ef4444;
+}
+
+/* Dark Theme Variables */
+[data-theme="dark"] {
+  --user-bg-primary: #0f172a;
+  --user-bg-secondary: #1e293b;
+  --user-text-primary: #f1f5f9;
+  --user-text-secondary: #94a3b8;
+  --user-text-muted: #64748b;
+  --user-border: #334155;
+  --user-card-bg: #1e293b;
+  --user-card-hover: #334155;
+  --user-shadow: rgba(0, 0, 0, 0.2);
+  --user-shadow-hover: rgba(0, 0, 0, 0.3);
+  --user-gradient-start: #818cf8;
+  --user-gradient-end: #a78bfa;
+}
+
+/* ============================================
+   USER DASHBOARD MAIN CONTAINER
+   ============================================ */
 .user-dashboard {
-  padding: 20px;
+  padding: 24px;
   margin-top: 80px;
   max-width: 1400px;
   margin-left: auto;
   margin-right: auto;
+  background: var(--user-bg-primary);
+  min-height: calc(100vh - 120px);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-.dashboard-header {
-  margin-bottom: 30px;
+/* ============================================
+   DASHBOARD HEADER
+   ============================================ */
+.user-dashboard .dashboard-header {
+  margin-bottom: 32px;
 }
 
-.dashboard-header h1 {
+.user-dashboard .dashboard-header h1 {
   font-size: 1.75rem;
-  color: #333;
-  margin-bottom: 20px;
+  color: var(--user-text-primary);
+  margin-bottom: 8px;
+  font-weight: 700;
+  transition: color 0.3s ease;
 }
 
-.stats-cards {
+.user-dashboard .dashboard-header p {
+  color: var(--user-text-secondary);
+  font-size: 0.875rem;
+}
+
+/* ============================================
+   STATS CARDS
+   ============================================ */
+.user-dashboard .stats-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 20px;
+  margin-bottom: 32px;
 }
 
-.stat-card {
-  background: white;
-  border-radius: 12px;
+.user-dashboard .stat-card {
+  background: var(--user-card-bg);
+  border-radius: 16px;
   padding: 20px;
   display: flex;
   align-items: center;
-  gap: 15px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s;
+  gap: 16px;
+  box-shadow: 0 1px 3px var(--user-shadow);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid var(--user-border);
+  cursor: pointer;
 }
 
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+.user-dashboard .stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px var(--user-shadow-hover);
+  background: var(--user-card-hover);
+  border-color: var(--user-gradient-start);
 }
 
-.stat-icon {
+.user-dashboard .stat-icon {
   font-size: 2rem;
+  padding: 12px;
+  background: linear-gradient(135deg, var(--user-gradient-start), var(--user-gradient-end));
+  border-radius: 14px;
+  color: white;
+  transition: all 0.3s ease;
 }
 
-.stat-info h3 {
-  font-size: 0.875rem;
-  color: #666;
-  margin-bottom: 5px;
+.user-dashboard .stat-info h3 {
+  font-size: 0.75rem;
+  color: var(--user-text-secondary);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
 }
 
-.stat-value {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #333;
+.user-dashboard .stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--user-text-primary);
+  line-height: 1.2;
 }
 
-.dashboard-nav {
+/* ============================================
+   DASHBOARD NAVIGATION
+   ============================================ */
+.user-dashboard .dashboard-nav {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
-  margin-bottom: 30px;
-  padding-bottom: 10px;
-  border-bottom: 2px solid #e5e5e5;
+  margin-bottom: 32px;
+  padding: 4px;
+  background: var(--user-bg-secondary);
+  border-radius: 16px;
+  transition: background 0.3s ease;
 }
 
-.dashboard-nav button {
+.user-dashboard .dashboard-nav button {
   padding: 10px 20px;
-  background: none;
+  background: transparent;
   border: none;
   cursor: pointer;
-  font-size: 0.9rem;
-  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 12px;
   transition: all 0.2s;
+  color: var(--user-text-secondary);
 }
 
-.dashboard-nav button:hover {
-  background: #f0f0f0;
+.user-dashboard .dashboard-nav button:hover {
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--user-gradient-start);
 }
 
-.dashboard-nav button.active {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+.user-dashboard .dashboard-nav button.active {
+  background: linear-gradient(135deg, var(--user-gradient-start), var(--user-gradient-end));
   color: white;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
 }
 
-.dashboard-content {
+/* ============================================
+   DASHBOARD CONTENT
+   ============================================ */
+.user-dashboard .dashboard-content {
   min-height: 500px;
 }
 
-.overview-layout {
+.user-dashboard .overview-layout {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 24px;
 }
 
+/* ============================================
+   CREATE TASK BUTTON
+   ============================================ */
+.create-task-btn {
+  background: linear-gradient(135deg, var(--user-gradient-start), var(--user-gradient-end));
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
+}
+
+.create-task-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+}
+
+/* ============================================
+   THEME TOGGLE TRANSITION
+   ============================================ */
+* {
+  transition: background-color 0.3s ease, 
+              border-color 0.3s ease, 
+              color 0.3s ease,
+              box-shadow 0.3s ease,
+              transform 0.2s ease;
+}
+
+/* ============================================
+   SCROLLBAR STYLING
+   ============================================ */
+.user-dashboard::-webkit-scrollbar {
+  width: 8px;
+}
+
+.user-dashboard::-webkit-scrollbar-track {
+  background: var(--user-bg-secondary);
+  border-radius: 4px;
+}
+
+.user-dashboard::-webkit-scrollbar-thumb {
+  background: var(--user-gradient-start);
+  border-radius: 4px;
+}
+
+.user-dashboard::-webkit-scrollbar-thumb:hover {
+  background: var(--user-gradient-end);
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
 @media (max-width: 1024px) {
-  .overview-layout {
+  .user-dashboard .overview-layout {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 768px) {
-  .stats-cards {
+  .user-dashboard {
+    padding: 16px;
+    margin-top: 70px;
+  }
+  
+  .user-dashboard .stats-cards {
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
   }
   
-  .dashboard-nav {
+  .user-dashboard .stat-card {
+    padding: 16px;
+  }
+  
+  .user-dashboard .stat-icon {
+    font-size: 1.5rem;
+    padding: 8px;
+  }
+  
+  .user-dashboard .stat-value {
+    font-size: 1.25rem;
+  }
+  
+  .user-dashboard .dashboard-nav {
     flex-direction: column;
+    background: transparent;
+    padding: 0;
+    gap: 6px;
   }
   
-  .dashboard-nav button {
+  .user-dashboard .dashboard-nav button {
     width: 100%;
+    background: var(--user-bg-secondary);
+  }
+  
+  .user-dashboard .dashboard-nav button.active {
+    background: linear-gradient(135deg, var(--user-gradient-start), var(--user-gradient-end));
+  }
+  
+  .create-task-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .user-dashboard .stats-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  .user-dashboard .dashboard-header h1 {
+    font-size: 1.5rem;
   }
 }

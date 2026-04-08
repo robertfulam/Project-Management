@@ -9,9 +9,13 @@ const AllTasks = ({ tasks, onUpdate, onTaskSelect }) => {
   const [editingTask, setEditingTask] = useState(null);
   const [editForm, setEditForm] = useState({});
 
-  const filteredTasks = tasks.filter(task => {
+  // Ensure tasks is an array
+  const safeTasks = Array.isArray(tasks) ? tasks : [];
+
+  const filteredTasks = safeTasks.filter(task => {
+    if (!task) return false;
     const matchesFilter = filter === 'all' || task.status === filter;
-    const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = task.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           task.description?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesFilter && matchesSearch;
   });
@@ -21,7 +25,7 @@ const AllTasks = ({ tasks, onUpdate, onTaskSelect }) => {
       try {
         await taskService.deleteTask(taskId);
         toast.success('Task deleted successfully');
-        onUpdate();
+        if (onUpdate) onUpdate();
       } catch (error) {
         toast.error('Failed to delete task');
       }
@@ -32,7 +36,7 @@ const AllTasks = ({ tasks, onUpdate, onTaskSelect }) => {
     try {
       await taskService.completeTask(taskId);
       toast.success('Task marked as complete');
-      onUpdate();
+      if (onUpdate) onUpdate();
     } catch (error) {
       toast.error('Failed to complete task');
     }
@@ -41,13 +45,13 @@ const AllTasks = ({ tasks, onUpdate, onTaskSelect }) => {
   const handleEditTask = (task) => {
     setEditingTask(task);
     setEditForm({
-      title: task.title,
-      description: task.description,
-      priority: task.priority,
-      urgency: task.urgency,
-      difficulty: task.difficulty,
+      title: task.title || '',
+      description: task.description || '',
+      priority: task.priority || 'medium',
+      urgency: task.urgency || 'moderate',
+      difficulty: task.difficulty || 'medium',
       dueDate: task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 16) : '',
-      status: task.status
+      status: task.status || 'pending'
     });
   };
 
@@ -57,7 +61,7 @@ const AllTasks = ({ tasks, onUpdate, onTaskSelect }) => {
       await taskService.updateTask(editingTask._id, editForm);
       toast.success('Task updated successfully');
       setEditingTask(null);
-      onUpdate();
+      if (onUpdate) onUpdate();
     } catch (error) {
       toast.error('Failed to update task');
     }
@@ -109,6 +113,7 @@ const AllTasks = ({ tasks, onUpdate, onTaskSelect }) => {
               <th>Title</th>
               <th>Category</th>
               <th>Assigned To</th>
+              <th>Owned/Created By</th>
               <th>Priority</th>
               <th>Status</th>
               <th>Due Date</th>
@@ -116,33 +121,45 @@ const AllTasks = ({ tasks, onUpdate, onTaskSelect }) => {
             </tr>
           </thead>
           <tbody>
-            {filteredTasks.map(task => (
-              <tr key={task._id} onClick={() => onTaskSelect && onTaskSelect(task)} className="task-row">
-                <td className="task-title">{task.title}</td>
-                <td>{task.category?.name || 'Uncategorized'}</td>
-                <td>{task.assignedTo?.name || 'Unassigned'}</td>
-                <td><span className={`priority-badge ${getPriorityClass(task.priority)}`}>{task.priority}</span></td>
-                <td><span className={`status-badge ${getStatusClass(task.status)}`}>{task.status}</span></td>
-                <td>{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No date'}</td>
-                <td className="actions" onClick={(e) => e.stopPropagation()}>
-                  <button onClick={() => handleEditTask(task)} className="edit-btn">Edit</button>
-                  {task.status !== 'completed' && (
-                    <button onClick={() => handleCompleteTask(task._id)} className="complete-btn">Complete</button>
-                  )}
-                  <button onClick={() => handleDeleteTask(task._id)} className="delete-btn">Delete</button>
-                </td>
+            {filteredTasks.length === 0 ? (
+              <tr>
+                <td colSpan="8" className="empty-state">No tasks found</td>
               </tr>
-            ))}
+            ) : (
+              filteredTasks.map(task => (
+                <tr key={task._id} onClick={() => onTaskSelect && onTaskSelect(task)} className="task-row">
+                  <td className="task-title">{task.title}</td>
+                  <td>{task.category?.name || 'Uncategorized'}</td>
+                  <td>
+                    <div className="assignee-info">
+                      <span className="assignee-name">{task.assignedTo?.name || 'Unassigned'}</span>
+                      <span className="assignee-email">{task.assignedTo?.email}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="owner-info">
+                      <span className="owner-name">{task.assignedBy?.name || 'System'}</span>
+                      <span className="owner-email">{task.assignedBy?.email}</span>
+                    </div>
+                  </td>
+                  <td><span className={`priority-badge ${getPriorityClass(task.priority)}`}>{task.priority}</span></td>
+                  <td><span className={`status-badge ${getStatusClass(task.status)}`}>{task.status}</span></td>
+                  <td>{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No date'}</td>
+                  <td className="actions" onClick={(e) => e.stopPropagation()}>
+                    <button onClick={() => handleEditTask(task)} className="edit-btn">Edit</button>
+                    {task.status !== 'completed' && (
+                      <button onClick={() => handleCompleteTask(task._id)} className="complete-btn">Complete</button>
+                    )}
+                    <button onClick={() => handleDeleteTask(task._id)} className="delete-btn">Delete</button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
 
-      {filteredTasks.length === 0 && (
-        <div className="empty-state">
-          <p>No tasks found</p>
-        </div>
-      )}
-
+      {/* Edit Task Modal */}
       {editingTask && (
         <div className="modal-overlay" onClick={() => setEditingTask(null)}>
           <div className="modal" onClick={e => e.stopPropagation()}>

@@ -70,7 +70,6 @@ const CreateCategory = ({ onCategoryCreated }) => {
   const handleClose = () => {
     if (!loading) {
       setShowModal(false);
-      // Reset form
       setCategoryName('');
       setDescription('');
       setSelectedColor('#6366f1');

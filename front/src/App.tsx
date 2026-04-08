@@ -1,13 +1,13 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import Navbar from "./components/Layout/Navbar";
-import AdminDashboard from "./components/Admin/AdminDashboard";
-import UserDashboard from "./components/User/UserDashboard";
+import AdminDashboard from "./pages/AdminDashboard";
+import UserDashboard from "./pages/UserDashboard";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ForgotPassword from "./components/Common/ForgotPassword";
 import ResetPassword from "./components/Common/ResetPassword";
-import { authService } from "./components/services/authService";
+import { authService } from "./services/authService";
 import RoleSwitcher from "./components/Common/RoleSwitcher";
 
 const ProtectedRoute = ({ children, requireAdmin = false }) => {

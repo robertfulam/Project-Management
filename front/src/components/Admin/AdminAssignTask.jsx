@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { taskService } from '../../services/taskService';
 import { categoryService } from '../../services/categoryService';
-import { authService } from '../services/authService';
 import toast from 'react-hot-toast';
 import './AdminAssignTask.css';
 
-const AdminAssignTask = ({ onAssign }) => {
+const AssignTask = ({ onAssign }) => {
   const [users, setUsers] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -34,18 +33,22 @@ const AdminAssignTask = ({ onAssign }) => {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       const data = await response.json();
-      setUsers(data.filter(user => user.role === 'user'));
+      const usersArray = Array.isArray(data) ? data : data?.users || data?.data || [];
+      setUsers(usersArray.filter(user => user.role === 'user'));
     } catch (error) {
       console.error('Failed to fetch users:', error);
+      toast.error('Failed to load users');
     }
   };
 
   const fetchCategories = async () => {
     try {
       const data = await categoryService.getCategories();
-      setCategories(data);
+      const categoriesArray = Array.isArray(data) ? data : data?.categories || data?.data || [];
+      setCategories(categoriesArray);
     } catch (error) {
       console.error('Failed to fetch categories:', error);
+      toast.error('Failed to load categories');
     }
   };
 
@@ -125,7 +128,7 @@ const AdminAssignTask = ({ onAssign }) => {
   };
 
   return (
-    <div className="admin-assign-task">
+    <div className="assign-task">
       <h2>Assign New Task</h2>
       <form onSubmit={handleSubmit} className="assign-form">
         <div className="form-group">
@@ -167,7 +170,7 @@ const AdminAssignTask = ({ onAssign }) => {
               <option value="">Select a category</option>
               {categories.map((cat) => (
                 <option key={cat._id} value={cat._id}>
-                  {cat.name}
+                  {cat.icon || '📁'} {cat.name}
                 </option>
               ))}
             </select>
@@ -304,4 +307,4 @@ const AdminAssignTask = ({ onAssign }) => {
   );
 };
 
-export default AdminAssignTask;
+export default AssignTask;

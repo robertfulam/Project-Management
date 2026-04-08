@@ -14,7 +14,7 @@ import {
   Filler,
 } from 'chart.js';
 import { taskService } from '../../services/taskService';
-import { authService } from '../services/authService';
+import { authService } from '../../services/authService';
 import toast from 'react-hot-toast';
 import './AdminProgress.css';
 
@@ -32,13 +32,11 @@ ChartJS.register(
 );
 
 const AdminProgress = ({ tasks, onTaskSelect }) => {
-  const [activeView, setActiveView] = useState('personal'); // 'personal' or 'team'
+  const [activeView, setActiveView] = useState('personal');
   const [personalTasks, setPersonalTasks] = useState([]);
   const [allTasks, setAllTasks] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedUser, setSelectedUser] = useState('all');
-  const [timeframe, setTimeframe] = useState('week');
   const currentUser = authService.getUser();
 
   useEffect(() => {
@@ -48,20 +46,50 @@ const AdminProgress = ({ tasks, onTaskSelect }) => {
   const fetchProgressData = async () => {
     try {
       setLoading(true);
-      const [personalTasksData, allTasksData] = await Promise.all([
-        taskService.getUserTasks(),
-        taskService.getAllTasks()
-      ]);
+      
+      // Fetch personal tasks
+      let personalTasksData = [];
+      try {
+        const personalResponse = await taskService.getUserTasks();
+        personalTasksData = Array.isArray(personalResponse) ? personalResponse : 
+                           personalResponse?.tasks ? personalResponse.tasks : 
+                           personalResponse?.data ? personalResponse.data : [];
+      } catch (err) {
+        console.error('Failed to fetch personal tasks:', err);
+        personalTasksData = [];
+      }
+      
+      // Fetch all tasks
+      let allTasksData = [];
+      try {
+        const allResponse = await taskService.getAllTasks();
+        allTasksData = Array.isArray(allResponse) ? allResponse : 
+                       allResponse?.tasks ? allResponse.tasks : 
+                       allResponse?.data ? allResponse.data : [];
+      } catch (err) {
+        console.error('Failed to fetch all tasks:', err);
+        allTasksData = [];
+      }
+      
       setPersonalTasks(personalTasksData);
       setAllTasks(allTasksData);
       
       // Fetch users
-      const usersRes = await fetch('http://localhost:9000/api/admin/users', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      const usersData = await usersRes.json();
-      setUsers(usersData.filter(u => u.role === 'user'));
-      
+      try {
+        const usersRes = await fetch('http://localhost:9000/api/admin/users', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        if (usersRes.ok) {
+          const usersData = await usersRes.json();
+          const usersArray = Array.isArray(usersData) ? usersData : 
+                            usersData?.users ? usersData.users : 
+                            usersData?.data ? usersData.data : [];
+          setUsers(usersArray.filter(u => u && u.role === 'user'));
+        }
+      } catch (err) {
+        console.error('Failed to fetch users:', err);
+        setUsers([]);
+      }
     } catch (error) {
       console.error('Failed to fetch progress data:', error);
       toast.error('Failed to load progress data');
@@ -72,25 +100,26 @@ const AdminProgress = ({ tasks, onTaskSelect }) => {
 
   // Filter tasks based on selected view
   const tasksToShow = activeView === 'personal' ? personalTasks : allTasks;
+  const safeTasks = Array.isArray(tasksToShow) ? tasksToShow : [];
   
   // Calculate statistics
-  const totalTasks = tasksToShow.length;
-  const completedTasks = tasksToShow.filter(t => t.status === 'completed').length;
-  const inProgressTasks = tasksToShow.filter(t => t.status === 'in-progress').length;
-  const pendingTasks = tasksToShow.filter(t => t.status === 'pending').length;
+  const totalTasks = safeTasks.length;
+  const completedTasks = safeTasks.filter(t => t && t.status === 'completed').length;
+  const inProgressTasks = safeTasks.filter(t => t && t.status === 'in-progress').length;
+  const pendingTasks = safeTasks.filter(t => t && t.status === 'pending').length;
   const completionRate = totalTasks > 0 ? (completedTasks / totalTasks * 100).toFixed(1) : 0;
   
   // Calculate overdue tasks
-  const overdueTasks = tasksToShow.filter(t => {
-    if (t.status !== 'completed' && t.dueDate) {
+  const overdueTasks = safeTasks.filter(t => {
+    if (t && t.status !== 'completed' && t.dueDate) {
       return new Date(t.dueDate) < new Date();
     }
     return false;
   }).length;
   
   // Calculate on-time completion rate
-  const onTimeTasks = tasksToShow.filter(t => {
-    if (t.status === 'completed' && t.completedAt && t.dueDate) {
+  const onTimeTasks = safeTasks.filter(t => {
+    if (t && t.status === 'completed' && t.completedAt && t.dueDate) {
       return new Date(t.completedAt) <= new Date(t.dueDate);
     }
     return false;
@@ -99,26 +128,26 @@ const AdminProgress = ({ tasks, onTaskSelect }) => {
 
   // Calculate priority distribution
   const priorityStats = {
-    critical: tasksToShow.filter(t => t.priority === 'critical').length,
-    high: tasksToShow.filter(t => t.priority === 'high').length,
-    medium: tasksToShow.filter(t => t.priority === 'medium').length,
-    low: tasksToShow.filter(t => t.priority === 'low').length
+    critical: safeTasks.filter(t => t && t.priority === 'critical').length,
+    high: safeTasks.filter(t => t && t.priority === 'high').length,
+    medium: safeTasks.filter(t => t && t.priority === 'medium').length,
+    low: safeTasks.filter(t => t && t.priority === 'low').length
   };
 
   // Calculate urgency distribution
   const urgencyStats = {
-    'very-urgent': tasksToShow.filter(t => t.urgency === 'very-urgent').length,
-    urgent: tasksToShow.filter(t => t.urgency === 'urgent').length,
-    moderate: tasksToShow.filter(t => t.urgency === 'moderate').length,
-    'not-urgent': tasksToShow.filter(t => t.urgency === 'not-urgent').length
+    'very-urgent': safeTasks.filter(t => t && t.urgency === 'very-urgent').length,
+    urgent: safeTasks.filter(t => t && t.urgency === 'urgent').length,
+    moderate: safeTasks.filter(t => t && t.urgency === 'moderate').length,
+    'not-urgent': safeTasks.filter(t => t && t.urgency === 'not-urgent').length
   };
 
   // Calculate difficulty distribution
   const difficultyStats = {
-    expert: tasksToShow.filter(t => t.difficulty === 'expert').length,
-    hard: tasksToShow.filter(t => t.difficulty === 'hard').length,
-    medium: tasksToShow.filter(t => t.difficulty === 'medium').length,
-    easy: tasksToShow.filter(t => t.difficulty === 'easy').length
+    expert: safeTasks.filter(t => t && t.difficulty === 'expert').length,
+    hard: safeTasks.filter(t => t && t.difficulty === 'hard').length,
+    medium: safeTasks.filter(t => t && t.difficulty === 'medium').length,
+    easy: safeTasks.filter(t => t && t.difficulty === 'easy').length
   };
 
   // Weekly progress data
@@ -131,8 +160,8 @@ const AdminProgress = ({ tasks, onTaskSelect }) => {
     
     const completedByDay = last7Days.map(day => {
       const dayDate = new Date(day);
-      return tasksToShow.filter(t => {
-        if (t.status === 'completed' && t.completedAt) {
+      return safeTasks.filter(t => {
+        if (t && t.status === 'completed' && t.completedAt) {
           const completedDate = new Date(t.completedAt);
           return completedDate.toDateString() === dayDate.toDateString();
         }
@@ -142,9 +171,12 @@ const AdminProgress = ({ tasks, onTaskSelect }) => {
     
     const createdByDay = last7Days.map(day => {
       const dayDate = new Date(day);
-      return tasksToShow.filter(t => {
-        const createdDate = new Date(t.createdAt);
-        return createdDate.toDateString() === dayDate.toDateString();
+      return safeTasks.filter(t => {
+        if (t && t.createdAt) {
+          const createdDate = new Date(t.createdAt);
+          return createdDate.toDateString() === dayDate.toDateString();
+        }
+        return false;
       }).length;
     });
     
@@ -153,11 +185,13 @@ const AdminProgress = ({ tasks, onTaskSelect }) => {
 
   // Team performance data
   const getTeamPerformance = () => {
+    if (!users.length) return [];
+    
     const userPerformance = users.map(user => {
-      const userTasks = allTasks.filter(t => t.assignedTo?._id === user._id);
-      const completedUserTasks = userTasks.filter(t => t.status === 'completed');
+      const userTasks = allTasks.filter(t => t && t.assignedTo?._id === user._id);
+      const completedUserTasks = userTasks.filter(t => t && t.status === 'completed');
       const overdueUserTasks = userTasks.filter(t => {
-        if (t.status !== 'completed' && t.dueDate) {
+        if (t && t.status !== 'completed' && t.dueDate) {
           return new Date(t.dueDate) < new Date();
         }
         return false;
@@ -171,7 +205,7 @@ const AdminProgress = ({ tasks, onTaskSelect }) => {
         overdueTasks: overdueUserTasks,
         onTimeRate: completedUserTasks.length > 0 
           ? (completedUserTasks.filter(t => {
-              if (t.completedAt && t.dueDate) {
+              if (t && t.completedAt && t.dueDate) {
                 return new Date(t.completedAt) <= new Date(t.dueDate);
               }
               return false;
@@ -186,7 +220,8 @@ const AdminProgress = ({ tasks, onTaskSelect }) => {
   // Category performance data
   const getCategoryPerformance = () => {
     const categories = {};
-    tasksToShow.forEach(task => {
+    safeTasks.forEach(task => {
+      if (!task) return;
       const categoryName = task.category?.name || 'Uncategorized';
       if (!categories[categoryName]) {
         categories[categoryName] = { total: 0, completed: 0 };
@@ -201,7 +236,7 @@ const AdminProgress = ({ tasks, onTaskSelect }) => {
       name,
       completed: data.completed,
       total: data.total,
-      rate: (data.completed / data.total) * 100
+      rate: data.total > 0 ? (data.completed / data.total) * 100 : 0
     })).sort((a, b) => b.rate - a.rate);
   };
 
@@ -290,7 +325,7 @@ const AdminProgress = ({ tasks, onTaskSelect }) => {
   };
 
   const teamBarData = {
-    labels: teamPerformance.slice(0, 10).map(u => u.name.split(' ')[0]),
+    labels: teamPerformance.slice(0, 10).map(u => u.name?.split(' ')[0] || u.name),
     datasets: [
       {
         label: 'Completion Rate (%)',
@@ -353,7 +388,12 @@ const AdminProgress = ({ tasks, onTaskSelect }) => {
   };
 
   if (loading) {
-    return <div className="progress-loading">Loading progress data...</div>;
+    return (
+      <div className="progress-loading">
+        <div className="loading-spinner"></div>
+        <p>Loading progress data...</p>
+      </div>
+    );
   }
 
   return (
@@ -536,7 +576,7 @@ const AdminProgress = ({ tasks, onTaskSelect }) => {
       <div className="recent-tasks">
         <h3>Recent Tasks</h3>
         <div className="tasks-list">
-          {tasksToShow.slice(0, 5).map(task => (
+          {safeTasks.slice(0, 5).map(task => (
             <div key={task._id} className="task-item" onClick={() => onTaskSelect && onTaskSelect(task)}>
               <div className={`task-status ${task.status}`}></div>
               <div className="task-info">
@@ -551,7 +591,7 @@ const AdminProgress = ({ tasks, onTaskSelect }) => {
               </div>
             </div>
           ))}
-          {tasksToShow.length === 0 && (
+          {safeTasks.length === 0 && (
             <div className="empty-tasks">No tasks to display</div>
           )}
         </div>

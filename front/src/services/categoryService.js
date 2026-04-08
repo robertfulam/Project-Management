@@ -21,7 +21,7 @@ export const categoryService = {
     }
   },
 
-  // Create category (admin only)
+  // Create category
   createCategory: async (categoryData) => {
     try {
       const response = await api.post('/categories', categoryData);
@@ -31,7 +31,7 @@ export const categoryService = {
     }
   },
 
-  // Update category (admin only)
+  // Update category
   updateCategory: async (id, categoryData) => {
     try {
       const response = await api.put(`/categories/${id}`, categoryData);
@@ -41,7 +41,7 @@ export const categoryService = {
     }
   },
 
-  // Delete category (admin only)
+  // Delete category
   deleteCategory: async (id) => {
     try {
       const response = await api.delete(`/categories/${id}`);

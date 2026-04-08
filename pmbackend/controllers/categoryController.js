@@ -1,106 +1,178 @@
+const mongoose = require('mongoose');
 const Category = require('../models/Category');
 const Task = require('../models/Task');
 
-// Get user's categories (only their own + default)
+// Get all categories
 const getCategories = async (req, res) => {
   try {
-    const categories = await Category.find({ 
-      $or: [
-        { createdBy: req.user._id },
-        { isDefault: true }
-      ]
-    }).sort({ createdAt: -1 });
+    let query = {};
     
-    res.json(categories);
+    // Non-admins only see their own categories + default ones
+    if (req.user.role !== 'admin') {
+      query = {
+        $or: [
+          { createdBy: req.user._id },
+          { isDefault: true }
+        ]
+      };
+    }
+    
+    const categories = await Category.find(query)
+      .populate('createdBy', 'name email')
+      .sort({ createdAt: -1 });
+    
+    res.json({
+      success: true,
+      categories
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ 
+      success: false, 
+      message: error.message 
+    });
   }
 };
 
-// Create category (any user)
+// Get single category
+const getCategoryById = async (req, res) => {
+  try {
+    const category = await Category.findById(req.params.id)
+      .populate('createdBy', 'name email');
+    
+    if (!category) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Category not found' 
+      });
+    }
+    
+    res.json({
+      success: true,
+      category
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      message: error.message 
+    });
+  }
+};
+
+// Create category
 const createCategory = async (req, res) => {
   try {
     const { name, description, color, icon } = req.body;
     
-    // Check if category already exists for this user
-    const existingCategory = await Category.findOne({ 
-      name: name.trim(),
-      createdBy: req.user._id
-    });
-    
-    if (existingCategory) {
-      return res.status(400).json({ message: 'Category already exists' });
-    }
-    
     const category = await Category.create({
       name: name.trim(),
       description: description || '',
-      createdBy: req.user._id, // assign to the logged-in user
-      isDefault: false,
+      createdBy: req.user._id,
       color: color || '#6366f1',
       icon: icon || '📁'
     });
     
-    res.status(201).json(category);
+    res.status(201).json({
+      success: true,
+      message: 'Category created',
+      category
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ 
+      success: false, 
+      message: error.message 
+    });
   }
 };
 
-// Update category (owner or admin)
+// Update category
 const updateCategory = async (req, res) => {
   try {
+    const { name, description, color, icon } = req.body;
     const category = await Category.findById(req.params.id);
     
     if (!category) {
-      return res.status(404).json({ message: 'Category not found' });
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Category not found' 
+      });
     }
     
-    // Check permissions
-    if (req.user.role !== 'admin' && category.createdBy.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Not authorized to edit this category' });
+    // Check permission (owner or admin)
+    if (category.createdBy.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Not authorized' 
+      });
     }
     
-    const { name, description, color, icon } = req.body;
-    if (name) category.name = name;
-    if (description !== undefined) category.description = description;
-    if (color) category.color = color;
-    if (icon) category.icon = icon;
+    category.name = name || category.name;
+    category.description = description !== undefined ? description : category.description;
+    category.color = color || category.color;
+    category.icon = icon || category.icon;
     
-    const updatedCategory = await category.save();
-    res.json(updatedCategory);
+    await category.save();
+    
+    res.json({
+      success: true,
+      message: 'Category updated',
+      category
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ 
+      success: false, 
+      message: error.message 
+    });
   }
 };
 
-// Delete category (owner or admin)
+// Delete category
 const deleteCategory = async (req, res) => {
   try {
     const category = await Category.findById(req.params.id);
     
     if (!category) {
-      return res.status(404).json({ message: 'Category not found' });
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Category not found' 
+      });
     }
     
-    // Check permissions
-    if (req.user.role !== 'admin' && category.createdBy.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Not authorized to delete this category' });
+    // Check permission (owner or admin)
+    if (category.createdBy.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Not authorized' 
+      });
     }
     
-    // Don't allow deleting default categories
+    // Don't delete default categories
     if (category.isDefault) {
-      return res.status(400).json({ message: 'Cannot delete default categories' });
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Cannot delete default categories' 
+      });
     }
     
     // Delete all tasks in this category
     await Task.deleteMany({ category: category._id });
     await category.deleteOne();
     
-    res.json({ message: 'Category deleted successfully' });
+    res.json({
+      success: true,
+      message: 'Category deleted'
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ 
+      success: false, 
+      message: error.message 
+    });
   }
 };
 
-module.exports = { getCategories, createCategory, updateCategory, deleteCategory };
+module.exports = {
+  getCategories,
+  getCategoryById,
+  createCategory,
+  updateCategory,
+  deleteCategory
+};

@@ -1,50 +1,67 @@
 import React, { useState } from 'react';
 import { taskService } from '../../services/taskService';
-import { authService } from '../services/authService';
+import { authService } from '../../services/authService';
 import toast from 'react-hot-toast';
 import './UserTasks.css';
 
 const UserTasks = ({ tasks, onUpdate, onTaskSelect }) => {
   const [filter, setFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
   const [editingTask, setEditingTask] = useState(null);
-  const [editForm, setEditForm] = useState({});
+  const [editForm, setEditForm] = useState({
+    title: '',
+    description: '',
+    priority: 'medium',
+    urgency: 'moderate',
+    difficulty: 'medium',
+    dueDate: ''
+  });
   const user = authService.getUser();
 
-  const filteredTasks = tasks.filter(task => {
-    if (filter === 'all') return true;
-    return task.status === filter;
+  // Ensure tasks is always an array
+  const safeTasks = Array.isArray(tasks) ? tasks : [];
+
+  const filteredTasks = safeTasks.filter(task => {
+    if (!task) return false;
+    const matchesFilter = filter === 'all' || task.status === filter;
+    const matchesSearch = task.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          task.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesFilter && matchesSearch;
   });
 
-  const handleCompleteTask = async (taskId) => {
+  const handleCompleteTask = async (taskId, e) => {
+    e.stopPropagation();
     try {
       await taskService.completeTask(taskId);
-      toast.success('Task completed! Great job! 🎉');
-      onUpdate();
+      toast.success('Task completed! 🎉');
+      if (onUpdate) onUpdate();
     } catch (error) {
-      toast.error('Failed to complete task');
+      toast.error(error.message || 'Failed to complete task');
     }
   };
 
-  const handleDeleteTask = async (taskId) => {
-    if (window.confirm('Are you sure you want to delete this task?')) {
+  const handleDeleteTask = async (taskId, e) => {
+    e.stopPropagation();
+    if (window.confirm('Are you sure you want to delete this task? This action cannot be undone.')) {
       try {
         await taskService.deleteTask(taskId);
         toast.success('Task deleted successfully');
-        onUpdate();
+        if (onUpdate) onUpdate();
       } catch (error) {
-        toast.error('Failed to delete task');
+        toast.error(error.message || 'Failed to delete task');
       }
     }
   };
 
-  const handleEditTask = (task) => {
+  const handleEditTask = (task, e) => {
+    e.stopPropagation();
     setEditingTask(task);
     setEditForm({
-      title: task.title,
-      description: task.description,
-      priority: task.priority,
-      urgency: task.urgency,
-      difficulty: task.difficulty,
+      title: task.title || '',
+      description: task.description || '',
+      priority: task.priority || 'medium',
+      urgency: task.urgency || 'moderate',
+      difficulty: task.difficulty || 'medium',
       dueDate: task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 16) : '',
     });
   };
@@ -55,9 +72,9 @@ const UserTasks = ({ tasks, onUpdate, onTaskSelect }) => {
       await taskService.updateTask(editingTask._id, editForm);
       toast.success('Task updated successfully');
       setEditingTask(null);
-      onUpdate();
+      if (onUpdate) onUpdate();
     } catch (error) {
-      toast.error('Failed to update task');
+      toast.error(error.message || 'Failed to update task');
     }
   };
 
@@ -65,11 +82,58 @@ const UserTasks = ({ tasks, onUpdate, onTaskSelect }) => {
     return dueDate && new Date(dueDate) < new Date();
   };
 
+  const getPriorityClass = (priority) => {
+    switch(priority) {
+      case 'critical': return 'priority-critical';
+      case 'high': return 'priority-high';
+      case 'medium': return 'priority-medium';
+      case 'low': return 'priority-low';
+      default: return 'priority-medium';
+    }
+  };
+
+  const getStatusClass = (status) => {
+    switch(status) {
+      case 'completed': return 'status-completed';
+      case 'in-progress': return 'status-progress';
+      default: return 'status-pending';
+    }
+  };
+
+  const getPriorityLabel = (priority) => {
+    switch(priority) {
+      case 'critical': return '🔴 Critical';
+      case 'high': return '🟠 High';
+      case 'medium': return '🟡 Medium';
+      case 'low': return '🟢 Low';
+      default: return '🟡 Medium';
+    }
+  };
+
+  const getUrgencyLabel = (urgency) => {
+    switch(urgency) {
+      case 'very-urgent': return '🔴 Very Urgent';
+      case 'urgent': return '🟠 Urgent';
+      case 'moderate': return '🟡 Moderate';
+      case 'not-urgent': return '🟢 Not Urgent';
+      default: return '🟡 Moderate';
+    }
+  };
+
   return (
     <div className="user-tasks">
       <div className="tasks-header">
         <h2>My Tasks</h2>
         <div className="filters">
+          <div className="search-input-wrapper">
+            <input
+              type="text"
+              placeholder="Search tasks..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="search-input"
+            />
+          </div>
           <select value={filter} onChange={(e) => setFilter(e.target.value)} className="filter-select">
             <option value="all">All Tasks</option>
             <option value="pending">Pending</option>
@@ -79,46 +143,128 @@ const UserTasks = ({ tasks, onUpdate, onTaskSelect }) => {
         </div>
       </div>
 
+      <div className="tasks-stats">
+        <div className="stat-badge">
+          Total: {safeTasks.length}
+        </div>
+        <div className="stat-badge completed">
+          Completed: {safeTasks.filter(t => t?.status === 'completed').length}
+        </div>
+        <div className="stat-badge pending">
+          Pending: {safeTasks.filter(t => t?.status === 'pending').length}
+        </div>
+        <div className="stat-badge progress">
+          In Progress: {safeTasks.filter(t => t?.status === 'in-progress').length}
+        </div>
+      </div>
+
       <div className="tasks-grid">
         {filteredTasks.length === 0 ? (
-          <div className="empty-state">No tasks found</div>
+          <div className="empty-state">
+            <div className="empty-icon">📋</div>
+            <h3>No Tasks Found</h3>
+            <p>You don't have any tasks matching your filters.</p>
+            <button onClick={() => window.location.href = '/add'} className="create-task-btn">
+              + Create Your First Task
+            </button>
+          </div>
         ) : (
           filteredTasks.map(task => (
-            <div key={task._id} className={`task-card ${isOverdue(task.dueDate) && task.status !== 'completed' ? 'overdue' : ''}`}>
+            <div 
+              key={task._id} 
+              className={`task-card ${isOverdue(task.dueDate) && task.status !== 'completed' ? 'overdue' : ''} ${task.status === 'completed' ? 'completed-task' : ''}`}
+              onClick={() => onTaskSelect && onTaskSelect(task)}
+            >
               <div className="task-header">
-                <h3>{task.title}</h3>
+                <div className="task-title-section">
+                  <h3>{task.title}</h3>
+                  {isOverdue(task.dueDate) && task.status !== 'completed' && (
+                    <span className="overdue-badge">Overdue!</span>
+                  )}
+                </div>
                 <div className="task-badges">
-                  <span className={`priority-badge ${task.priority}`}>{task.priority}</span>
-                  <span className={`status-badge ${task.status}`}>{task.status}</span>
+                  <span className={`priority-badge ${getPriorityClass(task.priority)}`}>
+                    {getPriorityLabel(task.priority)}
+                  </span>
+                  <span className={`status-badge ${getStatusClass(task.status)}`}>
+                    {task.status === 'in-progress' ? 'In Progress' : task.status}
+                  </span>
                 </div>
               </div>
-              <p className="task-description">{task.description}</p>
+              
+              <p className="task-description">
+                {task.description?.length > 120 
+                  ? `${task.description.substring(0, 120)}...` 
+                  : task.description}
+              </p>
+              
               <div className="task-meta">
-                <span className="task-category">📁 {task.category?.name}</span>
-                <span className="task-difficulty">⚡ {task.difficulty}</span>
-                <span className={`task-due ${isOverdue(task.dueDate) && task.status !== 'completed' ? 'overdue' : ''}`}>
-                  📅 Due: {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No date'}
-                  {isOverdue(task.dueDate) && task.status !== 'completed' && ' ⚠️ Overdue'}
-                </span>
+                <div className="meta-item">
+                  <span className="meta-icon">📁</span>
+                  <span className="meta-text">{task.category?.name || 'Uncategorized'}</span>
+                </div>
+                <div className="meta-item">
+                  <span className="meta-icon">⚡</span>
+                  <span className="meta-text">{getUrgencyLabel(task.urgency)}</span>
+                </div>
+                <div className="meta-item">
+                  <span className="meta-icon">📅</span>
+                  <span className={`meta-text due-date ${isOverdue(task.dueDate) && task.status !== 'completed' ? 'overdue-date' : ''}`}>
+                    Due: {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No date set'}
+                    {isOverdue(task.dueDate) && task.status !== 'completed' && ' ⚠️'}
+                  </span>
+                </div>
               </div>
+              
+              {task.tags && task.tags.length > 0 && (
+                <div className="task-tags">
+                  {task.tags.slice(0, 3).map((tag, index) => (
+                    <span key={index} className="tag">#{tag}</span>
+                  ))}
+                  {task.tags.length > 3 && (
+                    <span className="tag-more">+{task.tags.length - 3}</span>
+                  )}
+                </div>
+              )}
+              
               <div className="task-actions">
-                <button onClick={() => handleEditTask(task)} className="edit-btn">Edit</button>
+                <button 
+                  onClick={(e) => handleEditTask(task, e)} 
+                  className="edit-btn"
+                  title="Edit Task"
+                >
+                  ✏️ Edit
+                </button>
                 {task.status !== 'completed' && (
-                  <button onClick={() => handleCompleteTask(task._id)} className="complete-btn">Complete</button>
+                  <button 
+                    onClick={(e) => handleCompleteTask(task._id, e)} 
+                    className="complete-btn"
+                    title="Mark as Complete"
+                  >
+                    ✅ Complete
+                  </button>
                 )}
-                {task.assignedBy?._id === user?._id && (
-                  <button onClick={() => handleDeleteTask(task._id)} className="delete-btn">Delete</button>
-                )}
+                <button 
+                  onClick={(e) => handleDeleteTask(task._id, e)} 
+                  className="delete-btn"
+                  title="Delete Task"
+                >
+                  🗑️ Delete
+                </button>
               </div>
             </div>
           ))
         )}
       </div>
 
+      {/* Edit Task Modal */}
       {editingTask && (
         <div className="modal-overlay" onClick={() => setEditingTask(null)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <h3>Edit Task</h3>
+            <div className="modal-header">
+              <h3>Edit Task</h3>
+              <button className="modal-close" onClick={() => setEditingTask(null)}>✕</button>
+            </div>
             <form onSubmit={handleUpdateTask}>
               <div className="form-group">
                 <label>Title</label>
@@ -184,8 +330,12 @@ const UserTasks = ({ tasks, onUpdate, onTaskSelect }) => {
                 />
               </div>
               <div className="modal-actions">
-                <button type="button" onClick={() => setEditingTask(null)}>Cancel</button>
-                <button type="submit">Update Task</button>
+                <button type="button" onClick={() => setEditingTask(null)} className="cancel-btn">
+                  Cancel
+                </button>
+                <button type="submit" className="submit-btn">
+                  Save Changes
+                </button>
               </div>
             </form>
           </div>
@@ -195,4 +345,4 @@ const UserTasks = ({ tasks, onUpdate, onTaskSelect }) => {
   );
 };
 
-export default UserTasks;
+export default UserTasks;    

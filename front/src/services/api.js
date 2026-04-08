@@ -1,9 +1,7 @@
 import axios from 'axios';
 
-// API Configuration
-const API_URL = 'http://localhost:9000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:9000/api';
 
-// Create axios instance
 const api = axios.create({
   baseURL: API_URL,
   timeout: 30000,
@@ -12,7 +10,7 @@ const api = axios.create({
   },
 });
 
-// Request interceptor - Add auth token to every request
+// Request interceptor
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -21,19 +19,15 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor - Handle errors globally
+// Response interceptor
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      localStorage.removeItem('userRole');
+      localStorage.clear();
       window.location.href = '/login';
     }
     return Promise.reject(error);

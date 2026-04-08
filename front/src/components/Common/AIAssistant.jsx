@@ -31,15 +31,16 @@ const AIAssistant = ({ selectedTask, onTaskSelect, tasksCompletedToday }) => {
     if (chatEndRef.current) {
       chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [aiResponse]);
+  }, [aiResponse, aiLoading]);
 
   const generateAIBackground = async () => {
     try {
-      const response = await aiService.chat('Generate a prompt for a professional workspace background image', 'chat');
-      const imageUrl = `https://picsum.photos/seed/${Math.random()}/1920/1080`;
+      const randomId = Math.floor(Math.random() * 1000);
+      const imageUrl = `https://picsum.photos/id/${randomId}/1920/1080`;
       setBackgroundImage(imageUrl);
       localStorage.setItem('aiBackground', imageUrl);
       toast.success('AI Background generated!');
+      setShowBackgroundSelector(false);
     } catch (error) {
       toast.error('Failed to generate background');
     }
@@ -72,7 +73,7 @@ const AIAssistant = ({ selectedTask, onTaskSelect, tasksCompletedToday }) => {
           break;
         default:
           if (aiInput) {
-            response = await aiService.chat(aiInput, 'chat');
+            response = await aiService.chat(aiInput, 'chat', selectedTask?._id);
             setAiResponse(response.response);
             setAiInput("");
           }
@@ -80,7 +81,7 @@ const AIAssistant = ({ selectedTask, onTaskSelect, tasksCompletedToday }) => {
     } catch (error) {
       console.error('AI Error:', error);
       setAiResponse('Sorry, I encountered an error. Please try again.');
-      toast.error('AI service error');
+      toast.error(error.message || 'AI service error');
     } finally {
       setAiLoading(false);
     }
@@ -108,6 +109,7 @@ const AIAssistant = ({ selectedTask, onTaskSelect, tasksCompletedToday }) => {
       const data = await response.json();
       setAiResponse(data.summary || "File analyzed successfully!");
     } catch (error) {
+      console.error('File upload error:', error);
       setAiResponse("Failed to analyze file. Please try again.");
     } finally {
       setAiLoading(false);
@@ -115,7 +117,7 @@ const AIAssistant = ({ selectedTask, onTaskSelect, tasksCompletedToday }) => {
   };
 
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey && aiInput) {
+    if (e.key === 'Enter' && !e.shiftKey && aiInput && !aiLoading) {
       e.preventDefault();
       handleAIAction('chat');
     }

@@ -1,24 +1,23 @@
 const express = require('express');
 const { protect } = require('../middleware/auth');
 const {
-  createCategory,
   getCategories,
+  getCategoryById,
+  createCategory,
   updateCategory,
-  deleteCategory,
+  deleteCategory
 } = require('../controllers/categoryController');
 
 const router = express.Router();
 
-// Get all categories (any authenticated user)
-router.get('/', protect, getCategories);
+// All routes require authentication
+router.use(protect);
 
-// Create a new category (any authenticated user)
-router.post('/', protect, createCategory);
-
-// Update category (owner or admin)
-router.put('/:id', protect, updateCategory);
-
-// Delete category (owner or admin)
-router.delete('/:id', protect, deleteCategory);
+// Routes
+router.get('/', getCategories);           // Get all categories
+router.get('/:id', getCategoryById);      // Get one category
+router.post('/', createCategory);         // Create category
+router.put('/:id', updateCategory);       // Update category
+router.delete('/:id', deleteCategory);    // Delete category
 
 module.exports = router;
