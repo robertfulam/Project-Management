@@ -13,7 +13,7 @@ const router = express.Router();
 // All dashboard routes are protected
 router.use(protect);
 
-// Dashboard statistics
+// Dashboard statisticss
 router.get('/stats', getDashboardStats);
 
 // Individual dashboard views
