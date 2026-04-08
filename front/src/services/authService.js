@@ -52,20 +52,17 @@ export const authService = {
       return response.data;
     } catch (error) {
       console.error('Forgot password API error:', error);
-      // ✅ FIXED: properly extract error message
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to send reset link';
-      throw { message: errorMessage };
+      throw error.response?.data?.message || 'Failed to send reset link';
     }
   },
 
-  // Reset password
+  // ✅ FIXED: Changed from PUT to POST to match backend
   resetPassword: async (token, password) => {
     try {
-      const response = await api.put(`/auth/reset-password/${token}`, { password });
+      const response = await api.post(`/auth/reset-password/${token}`, { password });
       return response.data;
     } catch (error) {
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to reset password';
-      throw { message: errorMessage };
+      throw error.response?.data || error.message;
     }
   },
 

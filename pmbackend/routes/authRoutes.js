@@ -96,56 +96,21 @@ const changePasswordValidation = [
 // PUBLIC ROUTES (No authentication required)
 // ============================================
 
-// @route   POST /api/auth/register
-// @desc    Register a new user
-// @access  Public
 router.post('/register', registerValidation, register);
-
-// @route   POST /api/auth/login
-// @desc    Login user
-// @access  Public
 router.post('/login', loginValidation, login);
-
-// @route   POST /api/auth/forgot-password
-// @desc    Send password reset email
-// @access  Public
 router.post('/forgot-password', forgotPasswordValidation, forgotPassword);
-
-// @route   PUT /api/auth/reset-password/:token
-// @desc    Reset password with token
-// @access  Public
-router.put('/reset-password/:token', resetPasswordValidation, resetPassword);
+router.post('/reset-password/:token', resetPasswordValidation, resetPassword); // ✅ FIXED: Changed from PUT to POST
 
 // ============================================
 // PROTECTED ROUTES (Authentication required)
 // ============================================
 
-// Apply authentication middleware to all routes below
 router.use(protect);
 
-// @route   GET /api/auth/me
-// @desc    Get current logged in user
-// @access  Private
 router.get('/me', getMe);
-
-// @route   PUT /api/auth/profile
-// @desc    Update user profile
-// @access  Private
 router.put('/profile', updateProfileValidation, updateProfile);
-
-// @route   PUT /api/auth/change-password
-// @desc    Change password
-// @access  Private
 router.put('/change-password', changePasswordValidation, changePassword);
-
-// @route   DELETE /api/auth/account
-// @desc    Delete user account
-// @access  Private
 router.delete('/account', deleteAccount);
-
-// @route   GET /api/auth/switch-role
-// @desc    Switch between admin and user view (admin only)
-// @access  Private (Admin only)
 router.get('/switch-role', switchRole);
 
 module.exports = router;

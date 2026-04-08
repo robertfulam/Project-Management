@@ -39,20 +39,15 @@ const userSchema = new mongoose.Schema({
   timestamps: true,
 });
 
-// ✅ FIXED: Hash password before saving (async/await version)
-userSchema.pre('save', async function(next) {
+// ✅ FIXED: No 'next' parameter when using async/await
+userSchema.pre('save', async function() {
   // Only hash the password if it has been modified (or is new)
   if (!this.isModified('password')) {
-    return next();
+    return;
   }
   
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error) {
-    next(error);
-  }
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
 });
 
 // Compare password method
