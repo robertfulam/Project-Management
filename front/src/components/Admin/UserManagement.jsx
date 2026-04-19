@@ -25,7 +25,7 @@ const UserManagement = ({ onUpdate }) => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:9000/api/admin/users', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/admin/users`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       const data = await response.json();
@@ -49,7 +49,7 @@ const UserManagement = ({ onUpdate }) => {
     }
     
     try {
-      const response = await fetch('http://localhost:9000/api/admin/users', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/admin/users`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -79,7 +79,7 @@ const UserManagement = ({ onUpdate }) => {
     e.preventDefault();
     
     try {
-      const response = await fetch(`http://localhost:9000/api/admin/users/${selectedUser._id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/admin/users/${selectedUser._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -112,7 +112,7 @@ const UserManagement = ({ onUpdate }) => {
   const handleDeleteUser = async (userId, userName) => {
     if (window.confirm(`Are you sure you want to delete ${userName}? This action cannot be undone.`)) {
       try {
-        const response = await fetch(`http://localhost:9000/api/admin/users/${userId}`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/admin/users/${userId}`, {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
         });
@@ -134,7 +134,7 @@ const UserManagement = ({ onUpdate }) => {
 
   const handleUpdateRole = async (userId, newRole) => {
     try {
-      const response = await fetch(`http://localhost:9000/api/admin/users/${userId}/role`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/admin/users/${userId}/role`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

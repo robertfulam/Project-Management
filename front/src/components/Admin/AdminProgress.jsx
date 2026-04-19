@@ -76,7 +76,7 @@ const AdminProgress = ({ tasks, onTaskSelect }) => {
       
       // Fetch users
       try {
-        const usersRes = await fetch('http://localhost:9000/api/admin/users', {
+        const usersRes = await fetch(`${import.meta.env.VITE_API_URL}/admin/users`, {
           headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
         });
         if (usersRes.ok) {

@@ -98,7 +98,7 @@ const AIAssistant = ({ selectedTask, onTaskSelect, tasksCompletedToday }) => {
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await fetch('http://localhost:9000/api/ai/analyze-file', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/ai/analyze-file`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`

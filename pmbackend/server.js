@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
+const fs = require('fs');
 
 dotenv.config();
 
@@ -45,7 +46,7 @@ const corsOptions = {
       return callback(null, true);
     }
     
-    // Check if origin is allowed
+    // In production, check if origin is allowed
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
@@ -67,6 +68,11 @@ app.use(cors(corsOptions));
 // ============================================
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Ensure uploads directory exists (for production on Render)
+if (!fs.existsSync(path.join(__dirname, 'uploads'))) {
+  fs.mkdirSync(path.join(__dirname, 'uploads'), { recursive: true });
+}
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Request logging middleware (development only)
@@ -313,7 +319,7 @@ app.use((err, req, res, next) => {
 // ============================================
 // START SERVER
 // ============================================
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 9000;
 
 const server = app.listen(PORT, () => {
   console.log('\n' + '='.repeat(60));
